@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Firebase Configuration -->
+    <string name="default_web_client_id">1058765419358-e9c96b3g0l1vl6lc265ab4klllbmpqgu.apps.googleusercontent.com</string>
+    <string name="firebase_database_url">https://kaalapatram-ab58e-default-rtdb.firebaseio.com</string>
+    <string name="gcm_defaultSenderId">1058765419358</string>
+    <string name="google_api_key">AIzaSyDPzC1TYhHY1MbJ6MlbQ6ck3pRl59I0OW4</string>
+    <string name="google_app_id">1:1058765419358:android:6989f9ff39b1f4290515cf</string>
+    <string name="google_crash_reporting_api_key">AIzaSyDPzC1TYhHY1MbJ6MlbQ6ck3pRl59I0OW4</string>
+    <string name="google_storage_bucket">kaalapatram-ab58e.firebasestorage.app</string>
+    <string name="project_id">kaalapatram-ab58e</string>
+</resources>

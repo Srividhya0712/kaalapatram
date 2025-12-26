@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "1058765419358",
+    "project_id": "kaalapatram-ab58e",
+    "storage_bucket": "kaalapatram-ab58e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1058765419358:android:6989f9ff39b1f4290515cf",
+        "android_client_info": {
+          "package_name": "com.example.kaalapatram"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1058765419358-e9c96b3g0l1vl6lc265ab4klllbmpqgu.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDPzC1TYhHY1MbJ6MlbQ6ck3pRl59I0OW4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1058765419358-e9c96b3g0l1vl6lc265ab4klllbmpqgu.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
