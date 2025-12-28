@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:table_calendar/table_calendar.dart';
@@ -6,7 +7,10 @@ import '../models/event.dart';
 import '../providers/providers.dart';
 import '../widgets/event_detail_form.dart';
 import '../l10n/generated/app_localizations.dart';
+import '../services/in_app_notification_service.dart';
+import '../services/user_profile_service.dart';
 import 'search_users_screen.dart';
+import 'notification_center.dart';
 
 class MyCalendar extends ConsumerStatefulWidget {
   const MyCalendar({super.key});
@@ -20,14 +24,41 @@ class _MyCalendarState extends ConsumerState<MyCalendar> {
   DateTime _selectedDay = DateTime.now();
   CalendarFormat _calendarFormat = CalendarFormat.month;
 
+  // Notification count
+  final InAppNotificationService _notificationService = InAppNotificationService();
+  final UserProfileService _profileService = UserProfileService();
+  int _unreadNotificationCount = 0;
+  StreamSubscription<int>? _notificationSubscription;
+
   // Gold color theme
   static const Color goldColor = Color(0xFFD4AF37);
+  static const Color burgundy = Color(0xFF800020);
 
   @override
   void initState() {
     super.initState();
     _selectedDay = DateTime.now();
     _focusedDay = DateTime.now();
+    _loadNotificationCount();
+  }
+
+  @override
+  void dispose() {
+    _notificationSubscription?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _loadNotificationCount() async {
+    final profile = await _profileService.getProfileLocally();
+    if (profile != null) {
+      _notificationSubscription = _notificationService
+          .getUnreadCount(profile.uid)
+          .listen((count) {
+        if (mounted) {
+          setState(() => _unreadNotificationCount = count);
+        }
+      });
+    }
   }
 
   List<Event> _getEventsForDay(DateTime day, List<Event> allEvents) {
@@ -128,6 +159,39 @@ class _MyCalendarState extends ConsumerState<MyCalendar> {
                         ),
                       ],
                     ),
+                  ),
+                  // Notification bell with badge
+                  Stack(
+                    children: [
+                      IconButton(
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(builder: (context) => const NotificationCenterScreen()),
+                          );
+                        },
+                        icon: const Icon(Icons.notifications_outlined, color: Colors.white),
+                        tooltip: 'Notifications',
+                      ),
+                      if (_unreadNotificationCount > 0)
+                        Positioned(
+                          right: 8,
+                          top: 8,
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: burgundy,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 1.5),
+                            ),
+                            constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+                            child: Text(
+                              _unreadNotificationCount > 9 ? '9+' : '$_unreadNotificationCount',
+                              style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                   IconButton(
                     onPressed: () {

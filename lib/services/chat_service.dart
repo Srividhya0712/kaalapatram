@@ -107,6 +107,62 @@ class ChatService {
     });
   }
 
+  // Update/Edit a message (only allowed within 10 minutes)
+  Future<bool> updateMessage({
+    required String chatRoomId,
+    required String messageId,
+    required String newMessage,
+    required String senderId,
+  }) async {
+    // Get the message to verify ownership and time
+    final messageDoc = await _firestore
+        .collection(_chatRoomsCollection)
+        .doc(chatRoomId)
+        .collection(_messagesCollection)
+        .doc(messageId)
+        .get();
+
+    if (!messageDoc.exists) return false;
+
+    final messageData = messageDoc.data()!;
+    
+    // Verify sender owns this message
+    if (messageData['senderId'] != senderId) return false;
+
+    // Check if within 10 minutes
+    final timestamp = (messageData['timestamp'] as Timestamp?)?.toDate();
+    if (timestamp != null) {
+      final elapsed = DateTime.now().difference(timestamp);
+      if (elapsed.inMinutes >= 10) return false;
+    }
+
+    // Update the message
+    await messageDoc.reference.update({
+      'message': newMessage,
+      'isEdited': true,
+      'editedAt': FieldValue.serverTimestamp(),
+    });
+
+    // Update lastMessage in chat room if this was the last message
+    final chatRoomDoc = await _firestore
+        .collection(_chatRoomsCollection)
+        .doc(chatRoomId)
+        .get();
+    
+    if (chatRoomDoc.exists) {
+      final roomData = chatRoomDoc.data()!;
+      final lastMessageTime = (roomData['lastMessageTime'] as Timestamp?)?.toDate();
+      if (lastMessageTime != null && timestamp != null) {
+        // If this message was sent around the same time as last message, update it
+        if (lastMessageTime.difference(timestamp).inSeconds.abs() < 5) {
+          await chatRoomDoc.reference.update({'lastMessage': newMessage});
+        }
+      }
+    }
+
+    return true;
+  }
+
   // Mark messages as read
   Future<void> markMessagesAsRead(String chatRoomId, String userId) async {
     await _firestore
@@ -151,5 +207,67 @@ class ChatService {
         .collection(_chatRoomsCollection)
         .doc(chatRoomId)
         .delete();
+  }
+
+  /// Delete message for everyone (only sender can do this)
+  Future<bool> deleteMessageForEveryone({
+    required String chatRoomId,
+    required String messageId,
+    required String senderId,
+  }) async {
+    final messageDoc = await _firestore
+        .collection(_chatRoomsCollection)
+        .doc(chatRoomId)
+        .collection(_messagesCollection)
+        .doc(messageId)
+        .get();
+
+    if (!messageDoc.exists) return false;
+
+    final messageData = messageDoc.data()!;
+    
+    // Only sender can delete for everyone
+    if (messageData['senderId'] != senderId) return false;
+
+    // Update message as deleted for all
+    await messageDoc.reference.update({
+      'isDeletedForAll': true,
+      'message': 'This message was deleted',
+    });
+
+    // Update lastMessage in chat room if this was the last message
+    final chatRoomDoc = await _firestore
+        .collection(_chatRoomsCollection)
+        .doc(chatRoomId)
+        .get();
+    
+    if (chatRoomDoc.exists) {
+      final roomData = chatRoomDoc.data()!;
+      final lastMessage = roomData['lastMessage'] as String?;
+      if (lastMessage == messageData['message']) {
+        await chatRoomDoc.reference.update({
+          'lastMessage': 'This message was deleted',
+        });
+      }
+    }
+
+    return true;
+  }
+
+  /// Delete message for current user only
+  Future<void> deleteMessageForMe({
+    required String chatRoomId,
+    required String messageId,
+    required String userId,
+  }) async {
+    final messageRef = _firestore
+        .collection(_chatRoomsCollection)
+        .doc(chatRoomId)
+        .collection(_messagesCollection)
+        .doc(messageId);
+
+    await messageRef.update({
+      'deletedForUsers': FieldValue.arrayUnion([userId]),
+    });
   }
 }

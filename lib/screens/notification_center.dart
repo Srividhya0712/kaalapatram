@@ -1,10 +1,14 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:intl/intl.dart';
 import '../models/connection.dart';
 import '../models/user_profile.dart';
+import '../models/in_app_notification.dart';
 import '../services/connection_service.dart';
 import '../services/user_profile_service.dart';
+import '../services/in_app_notification_service.dart';
+import 'my_tasks_screen.dart';
 
 class NotificationCenterScreen extends StatefulWidget {
   const NotificationCenterScreen({super.key});
@@ -17,25 +21,29 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen>
     with SingleTickerProviderStateMixin {
   final ConnectionService _connectionService = ConnectionService();
   final UserProfileService _profileService = UserProfileService();
+  final InAppNotificationService _notificationService = InAppNotificationService();
   
   late TabController _tabController;
   
   List<Connection> _pendingRequests = [];
   List<Connection> _sentRequests = [];
+  List<InAppNotification> _taskNotifications = [];
   Map<String, UserProfile> _userProfiles = {};
   String? _currentUserId;
   bool _isLoading = true;
 
   StreamSubscription<List<Connection>>? _pendingSubscription;
   StreamSubscription<List<Connection>>? _sentSubscription;
+  StreamSubscription<List<InAppNotification>>? _notificationSubscription;
 
   static const Color goldColor = Color(0xFFD4AF37);
   static const Color tealColor = Color(0xFF26A69A);
+  static const Color burgundy = Color(0xFF800020);
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     _loadData();
   }
 
@@ -44,6 +52,7 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen>
     _tabController.dispose();
     _pendingSubscription?.cancel();
     _sentSubscription?.cancel();
+    _notificationSubscription?.cancel();
     super.dispose();
   }
 
@@ -74,6 +83,14 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen>
         if (mounted) setState(() {});
       });
 
+      // Subscribe to task notifications
+      _notificationSubscription = _notificationService
+          .getNotifications(_currentUserId!)
+          .listen((notifications) {
+        _taskNotifications = notifications;
+        if (mounted) setState(() {});
+      });
+
     } catch (e) {
       debugPrint('Error loading notifications: $e');
     } finally {
@@ -97,10 +114,7 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen>
     try {
       await _connectionService.acceptConnectionRequest(connection.id);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Connection accepted!'),
-          backgroundColor: Colors.green,
-        ),
+        const SnackBar(content: Text('Connection accepted!'), backgroundColor: Colors.green),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -135,13 +149,47 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen>
     }
   }
 
+  void _openTaskNotification(InAppNotification notification) async {
+    // Mark as read
+    if (!notification.isRead) {
+      await _notificationService.markAsRead(notification.id!);
+    }
+    
+    // Navigate to My Tasks screen
+    if (mounted) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const MyTasksScreen()),
+      );
+    }
+  }
+
+  Future<void> _markAllTasksRead() async {
+    if (_currentUserId != null) {
+      await _notificationService.markAllAsRead(_currentUserId!);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('All marked as read')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final unreadTasks = _taskNotifications.where((n) => !n.isRead).length;
+    
     return Scaffold(
       appBar: AppBar(
         title: const Text('Notifications'),
         backgroundColor: goldColor,
         foregroundColor: Colors.white,
+        actions: [
+          if (_taskNotifications.any((n) => !n.isRead))
+            IconButton(
+              icon: const Icon(Icons.done_all),
+              tooltip: 'Mark all as read',
+              onPressed: _markAllTasksRead,
+            ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           indicatorColor: Colors.white,
@@ -152,8 +200,18 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen>
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  const Icon(Icons.assignment, size: 18),
+                  const SizedBox(width: 4),
+                  Text('Tasks${unreadTasks > 0 ? ' ($unreadTasks)' : ''}'),
+                ],
+              ),
+            ),
+            Tab(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
                   const Icon(Icons.person_add, size: 18),
-                  const SizedBox(width: 6),
+                  const SizedBox(width: 4),
                   Text('Requests${_pendingRequests.isNotEmpty ? ' (${_pendingRequests.length})' : ''}'),
                 ],
               ),
@@ -163,7 +221,7 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen>
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const Icon(Icons.send, size: 18),
-                  const SizedBox(width: 6),
+                  const SizedBox(width: 4),
                   Text('Sent${_sentRequests.isNotEmpty ? ' (${_sentRequests.length})' : ''}'),
                 ],
               ),
@@ -176,11 +234,132 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen>
           : TabBarView(
               controller: _tabController,
               children: [
+                _buildTaskNotificationsList(),
                 _buildRequestsList(),
                 _buildSentList(),
               ],
             ),
     );
+  }
+
+  Widget _buildTaskNotificationsList() {
+    if (_taskNotifications.isEmpty) {
+      return _buildEmptyState(
+        icon: Icons.assignment_outlined,
+        title: 'No Task Notifications',
+        subtitle: 'When admin assigns you a task, notifications will appear here',
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: _taskNotifications.length,
+      itemBuilder: (context, index) {
+        final notification = _taskNotifications[index];
+        return _buildTaskNotificationCard(notification);
+      },
+    );
+  }
+
+  Widget _buildTaskNotificationCard(InAppNotification notification) {
+    final isUnread = !notification.isRead;
+    
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: isUnread ? burgundy.withAlpha(20) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: isUnread ? Border.all(color: burgundy.withAlpha(50)) : null,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(13),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.all(16),
+        leading: Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            color: _getNotificationColor(notification.type).withAlpha(30),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            _getNotificationIcon(notification.type),
+            color: _getNotificationColor(notification.type),
+          ),
+        ),
+        title: Row(
+          children: [
+            Expanded(
+              child: Text(
+                notification.title,
+                style: TextStyle(
+                  fontWeight: isUnread ? FontWeight.bold : FontWeight.w500,
+                  fontSize: 15,
+                ),
+              ),
+            ),
+            if (isUnread)
+              Container(
+                width: 10,
+                height: 10,
+                decoration: const BoxDecoration(
+                  color: burgundy,
+                  shape: BoxShape.circle,
+                ),
+              ),
+          ],
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 4),
+            Text(
+              notification.body,
+              style: TextStyle(color: Colors.grey.shade600),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              DateFormat('MMM dd, yyyy at HH:mm').format(notification.createdAt),
+              style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
+            ),
+          ],
+        ),
+        onTap: () => _openTaskNotification(notification),
+      ),
+    );
+  }
+
+  IconData _getNotificationIcon(NotificationType type) {
+    switch (type) {
+      case NotificationType.taskAssigned:
+        return Icons.assignment_ind;
+      case NotificationType.taskConfirmed:
+        return Icons.check_circle;
+      case NotificationType.taskDenied:
+        return Icons.cancel;
+      case NotificationType.general:
+        return Icons.notifications;
+    }
+  }
+
+  Color _getNotificationColor(NotificationType type) {
+    switch (type) {
+      case NotificationType.taskAssigned:
+        return burgundy;
+      case NotificationType.taskConfirmed:
+        return tealColor;
+      case NotificationType.taskDenied:
+        return Colors.red;
+      case NotificationType.general:
+        return goldColor;
+    }
   }
 
   Widget _buildRequestsList() {
@@ -288,7 +467,6 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen>
       ),
       child: Row(
         children: [
-          // Profile avatar
           Container(
             width: 56,
             height: 56,
@@ -312,47 +490,21 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen>
                 : _buildInitialsAvatar(username),
           ),
           const SizedBox(width: 12),
-          
-          // User info
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  username,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
+                Text(username, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                 if (profile?.profession.isNotEmpty == true) ...[
                   const SizedBox(height: 2),
-                  Text(
-                    profile!.profession,
-                    style: TextStyle(
-                      color: Colors.grey.shade600,
-                      fontSize: 13,
-                    ),
-                  ),
+                  Text(profile!.profession, style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
                 ],
                 const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    color: tealColor,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
+                Text(subtitle, style: TextStyle(color: tealColor, fontSize: 12, fontWeight: FontWeight.w500)),
               ],
             ),
           ),
-          
-          // Actions
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            children: actions,
-          ),
+          Column(mainAxisSize: MainAxisSize.min, children: actions),
         ],
       ),
     );
@@ -362,20 +514,12 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen>
     return Center(
       child: Text(
         username.isNotEmpty ? username[0].toUpperCase() : '?',
-        style: const TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.bold,
-          fontSize: 22,
-        ),
+        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 22),
       ),
     );
   }
 
-  Widget _buildEmptyState({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-  }) {
+  Widget _buildEmptyState({required IconData icon, required String title, required String subtitle}) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -384,26 +528,13 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen>
           children: [
             Container(
               padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: goldColor.withAlpha(26),
-                shape: BoxShape.circle,
-              ),
+              decoration: BoxDecoration(color: goldColor.withAlpha(26), shape: BoxShape.circle),
               child: Icon(icon, size: 64, color: goldColor.withAlpha(128)),
             ),
             const SizedBox(height: 24),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+            Text(title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
-            Text(
-              subtitle,
-              style: TextStyle(color: Colors.grey.shade600),
-              textAlign: TextAlign.center,
-            ),
+            Text(subtitle, style: TextStyle(color: Colors.grey.shade600), textAlign: TextAlign.center),
           ],
         ),
       ),

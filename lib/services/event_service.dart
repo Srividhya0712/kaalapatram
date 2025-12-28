@@ -255,4 +255,67 @@ class EventService {
       return 0;
     }
   }
+
+  // ============== ADMIN METHODS ==============
+
+  /// Get ALL events in the system (for admin dashboard - no user filter)
+  Stream<List<Event>> getAllEventsForAdmin() {
+    return _eventsCollection
+        .orderBy('date', descending: false)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => Event.fromFirestore(doc))
+            .toList());
+  }
+
+  /// Search events by @username (performer head or created by)
+  Stream<List<Event>> searchEventsByUsername(String username) {
+    final searchUser = username.toLowerCase().replaceAll('@', '').trim();
+    if (searchUser.isEmpty) {
+      return getAllEventsForAdmin();
+    }
+    
+    return getAllEventsForAdmin().map((events) => events.where((e) {
+      final createdBy = e.createdBy.toLowerCase().replaceAll('@', '');
+      final performer = (e.performerHead ?? '').toLowerCase().replaceAll('@', '');
+      final assignedBy = e.assignedBy.toLowerCase().replaceAll('@', '');
+      return createdBy.contains(searchUser) || 
+             performer.contains(searchUser) || 
+             assignedBy.contains(searchUser);
+    }).toList());
+  }
+
+  /// Get upcoming events for admin (date >= today)
+  static List<Event> filterUpcoming(List<Event> events) {
+    return events.where((e) => e.isUpcoming).toList()
+      ..sort((a, b) => a.date.compareTo(b.date));
+  }
+
+  /// Get completed events for admin (date < today)
+  static List<Event> filterCompleted(List<Event> events) {
+    return events.where((e) => e.isCompleted).toList()
+      ..sort((a, b) => b.date.compareTo(a.date));
+  }
+
+  /// Create event as admin
+  Future<String> createEventAsAdmin(Event event, String adminUsername) async {
+    final eventData = event.toMap();
+    eventData['assignedByAdmin'] = true;
+    eventData['createdBy'] = adminUsername;
+    
+    try {
+      final docRef = await _eventsCollection.add(eventData);
+      return docRef.id;
+    } catch (e) {
+      throw Exception('Failed to create event: $e');
+    }
+  }
+
+  /// Update event status (for admin)
+  Future<void> updateEventStatus(String eventId, String status) async {
+    await _eventsCollection.doc(eventId).update({
+      'status': status,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
 }

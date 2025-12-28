@@ -5,6 +5,7 @@ import '../services/user_profile_service.dart';
 import '../main.dart' show suppressAuthNavigation;
 import 'register_screen.dart';
 import 'forgot_password_screen.dart';
+import 'admin/admin_login_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -524,6 +525,23 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                   ],
+                ),
+                const SizedBox(height: 16),
+                
+                // Admin Login Link
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (context) => const AdminLoginScreen()),
+                    );
+                  },
+                  child: Text(
+                    'Admin Login',
+                    style: TextStyle(
+                      color: theme.colorScheme.onSurface.withAlpha(100),
+                      fontSize: 12,
+                    ),
+                  ),
                 ),
               ],
             ),

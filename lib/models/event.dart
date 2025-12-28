@@ -13,6 +13,17 @@ class Event {
   final String createdBy;
   final DateTime? createdAt;
   final DateTime? updatedAt;
+  
+  // New fields for unified admin/user events
+  final bool assignedByAdmin;
+  final String? performerHead;      // @username of performer
+  final String? performerHeadId;
+  final String? performerAssistant;
+  final String? performerAssistantId;
+  final String? city;
+  final String? time;
+  final String? transport;
+  final String status;              // pending, confirmed, denied
 
   Event({
     this.id,
@@ -27,7 +38,27 @@ class Event {
     required this.createdBy,
     this.createdAt,
     this.updatedAt,
+    this.assignedByAdmin = false,
+    this.performerHead,
+    this.performerHeadId,
+    this.performerAssistant,
+    this.performerAssistantId,
+    this.city,
+    this.time,
+    this.transport,
+    this.status = 'pending',
   });
+
+  /// Check if event is upcoming (date >= today)
+  bool get isUpcoming {
+    final today = DateTime.now();
+    final todayStart = DateTime(today.year, today.month, today.day);
+    final eventDate = DateTime(date.year, date.month, date.day);
+    return eventDate.isAfter(todayStart) || eventDate.isAtSameMomentAs(todayStart);
+  }
+
+  /// Check if event is completed (date < today)
+  bool get isCompleted => !isUpcoming;
 
   // Convert Event to Map for Firestore
   Map<String, dynamic> toMap() {
@@ -43,6 +74,15 @@ class Event {
       'createdBy': createdBy,
       'createdAt': createdAt ?? FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
+      'assignedByAdmin': assignedByAdmin,
+      if (performerHead != null) 'performerHead': performerHead,
+      if (performerHeadId != null) 'performerHeadId': performerHeadId,
+      if (performerAssistant != null) 'performerAssistant': performerAssistant,
+      if (performerAssistantId != null) 'performerAssistantId': performerAssistantId,
+      if (city != null) 'city': city,
+      if (time != null) 'time': time,
+      if (transport != null) 'transport': transport,
+      'status': status,
     };
   }
 
@@ -60,10 +100,28 @@ class Event {
       paymentAmount: (data['paymentAmount'] ?? 0).toDouble(),
       currency: data['currency'] ?? '₹',
       createdBy: data['createdBy'] ?? '',
-      createdAt: data['createdAt']?.toDate(),
-      updatedAt: data['updatedAt']?.toDate(),
+      createdAt: _parseDateTime(data['createdAt']),
+      updatedAt: _parseDateTime(data['updatedAt']),
+      assignedByAdmin: data['assignedByAdmin'] ?? false,
+      performerHead: data['performerHead'],
+      performerHeadId: data['performerHeadId'],
+      performerAssistant: data['performerAssistant'],
+      performerAssistantId: data['performerAssistantId'],
+      city: data['city'],
+      time: data['time'],
+      transport: data['transport'],
+      status: data['status'] ?? 'pending',
     );
   }
+
+  // Helper to parse DateTime from various formats (Timestamp, int, null)
+  static DateTime? _parseDateTime(dynamic value) {
+    if (value == null) return null;
+    if (value is Timestamp) return value.toDate();
+    if (value is int) return DateTime.fromMillisecondsSinceEpoch(value);
+    return null;
+  }
+
 
   // Create Event from Map (for local operations)
   factory Event.fromMap(Map<String, dynamic> map, {String? id}) {
@@ -82,6 +140,12 @@ class Event {
       createdBy: map['createdBy'] ?? '',
       createdAt: map['createdAt']?.toDate(),
       updatedAt: map['updatedAt']?.toDate(),
+      assignedByAdmin: map['assignedByAdmin'] ?? false,
+      performerHead: map['performerHead'],
+      performerHeadId: map['performerHeadId'],
+      city: map['city'],
+      time: map['time'],
+      status: map['status'] ?? 'pending',
     );
   }
 
@@ -99,6 +163,7 @@ class Event {
     String? createdBy,
     DateTime? createdAt,
     DateTime? updatedAt,
+    String? status,
   }) {
     return Event(
       id: id ?? this.id,
@@ -113,6 +178,15 @@ class Event {
       createdBy: createdBy ?? this.createdBy,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      assignedByAdmin: assignedByAdmin,
+      performerHead: performerHead,
+      performerHeadId: performerHeadId,
+      performerAssistant: performerAssistant,
+      performerAssistantId: performerAssistantId,
+      city: city,
+      time: time,
+      transport: transport,
+      status: status ?? this.status,
     );
   }
 
@@ -124,13 +198,17 @@ class Event {
   }
 
   // Helper method to parse date from Firestore
-  static DateTime _parseDateFromFirestore(String dateString) {
-    try {
-      return DateTime.parse(dateString);
-    } catch (e) {
-      // Fallback to current date if parsing fails
-      return DateTime.now();
+  static DateTime _parseDateFromFirestore(dynamic dateValue) {
+    if (dateValue == null) return DateTime.now();
+    if (dateValue is Timestamp) return dateValue.toDate();
+    if (dateValue is String) {
+      try {
+        return DateTime.parse(dateValue);
+      } catch (e) {
+        return DateTime.now();
+      }
     }
+    return DateTime.now();
   }
 
   // Get formatted date string for display
@@ -142,6 +220,9 @@ class Event {
            date.month == other.month &&
            date.day == other.day;
   }
+
+  /// Get display name (employer or function name)
+  String get displayName => employerName.isNotEmpty ? employerName : 'Event';
 
   @override
   String toString() {

@@ -12,6 +12,10 @@ class ChatMessage {
   final DateTime timestamp;
   final bool isRead;
   final MessageStatus status;
+  final bool isEdited;
+  final DateTime? editedAt;
+  final bool isDeletedForAll;
+  final List<String> deletedForUsers;
 
   ChatMessage({
     required this.id,
@@ -22,19 +26,34 @@ class ChatMessage {
     required this.timestamp,
     this.isRead = false,
     this.status = MessageStatus.sent,
+    this.isEdited = false,
+    this.editedAt,
+    this.isDeletedForAll = false,
+    this.deletedForUsers = const [],
   });
 
-  // Create a copy with updated status
-  ChatMessage copyWith({MessageStatus? status}) {
+  // Create a copy with updated status or message
+  ChatMessage copyWith({
+    MessageStatus? status,
+    String? message,
+    bool? isEdited,
+    DateTime? editedAt,
+    bool? isDeletedForAll,
+    List<String>? deletedForUsers,
+  }) {
     return ChatMessage(
       id: id,
       chatRoomId: chatRoomId,
       senderId: senderId,
       senderName: senderName,
-      message: message,
+      message: message ?? this.message,
       timestamp: timestamp,
       isRead: isRead,
       status: status ?? this.status,
+      isEdited: isEdited ?? this.isEdited,
+      editedAt: editedAt ?? this.editedAt,
+      isDeletedForAll: isDeletedForAll ?? this.isDeletedForAll,
+      deletedForUsers: deletedForUsers ?? this.deletedForUsers,
     );
   }
 
@@ -49,6 +68,10 @@ class ChatMessage {
       timestamp: (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now(),
       isRead: data['isRead'] ?? false,
       status: MessageStatus.sent, // Messages from Firestore are already sent
+      isEdited: data['isEdited'] ?? false,
+      editedAt: (data['editedAt'] as Timestamp?)?.toDate(),
+      isDeletedForAll: data['isDeletedForAll'] ?? false,
+      deletedForUsers: List<String>.from(data['deletedForUsers'] ?? []),
     );
   }
 
@@ -60,7 +83,34 @@ class ChatMessage {
       'message': message,
       'timestamp': FieldValue.serverTimestamp(),
       'isRead': isRead,
+      'isEdited': isEdited,
+      if (editedAt != null) 'editedAt': Timestamp.fromDate(editedAt!),
+      'isDeletedForAll': isDeletedForAll,
+      'deletedForUsers': deletedForUsers,
     };
+  }
+
+  /// Check if message can be edited (within 10 minutes of sending)
+  bool get canEdit {
+    final now = DateTime.now();
+    final elapsed = now.difference(timestamp);
+    return elapsed.inMinutes < 10;
+  }
+
+  /// Check if message is deleted for a specific user
+  bool isDeletedFor(String userId) {
+    return isDeletedForAll || deletedForUsers.contains(userId);
+  }
+
+  /// Get display text (handles deleted messages)
+  String getDisplayText(String currentUserId) {
+    if (isDeletedForAll) {
+      return 'This message was deleted';
+    }
+    if (deletedForUsers.contains(currentUserId)) {
+      return ''; // Message won't be shown at all
+    }
+    return message;
   }
 }
 
