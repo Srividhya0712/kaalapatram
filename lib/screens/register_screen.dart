@@ -1,10 +1,22 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../services/auth_service.dart';
 import '../services/user_profile_service.dart';
+import 'email_verification_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
-  const RegisterScreen({super.key});
+  final bool showSignupMessage;
+  final String? googleDisplayName;
+  final String? googleEmail;
+  
+  const RegisterScreen({
+    super.key, 
+    this.showSignupMessage = false,
+    this.googleDisplayName,
+    this.googleEmail,
+  });
 
   @override
   State<RegisterScreen> createState() => _RegisterScreenState();
@@ -25,6 +37,92 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   String? _errorMessage;
+  bool _usernameAvailable = true;
+  bool _checkingUsername = false;
+
+  @override
+  void initState() {
+    super.initState();
+    
+    // Pre-fill email from Google Sign-In
+    if (widget.googleEmail != null) {
+      _emailController.text = widget.googleEmail!;
+    }
+    
+    // Generate username from Google display name
+    if (widget.googleDisplayName != null) {
+      _generateAndSetUsername(widget.googleDisplayName!);
+    }
+    
+    // Show signup message if redirected from Google Sign-In
+    if (widget.showSignupMessage) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Row(
+              children: [
+                Icon(Icons.info_outline, color: Colors.white),
+                SizedBox(width: 10),
+                Expanded(child: Text('Please sign up first!')),
+              ],
+            ),
+            backgroundColor: Colors.orange.shade700,
+            duration: const Duration(seconds: 4),
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.all(16),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+      });
+    }
+  }
+
+  /// Generates a unique username from Google display name
+  Future<void> _generateAndSetUsername(String displayName) async {
+    String baseUsername = _sanitizeUsername(displayName);
+    
+    if (baseUsername.length < 3) {
+      baseUsername = 'user${Random().nextInt(9999)}';
+    }
+    
+    String candidateUsername = baseUsername;
+    int attempts = 0;
+    
+    while (attempts < 10) {
+      final isAvailable = await _profileService.isUsernameAvailable(candidateUsername);
+      if (isAvailable) {
+        if (mounted) {
+          setState(() {
+            _usernameController.text = candidateUsername;
+            _usernameAvailable = true;
+          });
+        }
+        return;
+      }
+      // Append random numbers if username is taken
+      candidateUsername = '${baseUsername}_${Random().nextInt(999)}';
+      attempts++;
+    }
+    
+    // Fallback: use base username with timestamp
+    candidateUsername = '${baseUsername}_${DateTime.now().millisecondsSinceEpoch % 10000}';
+    if (mounted) {
+      setState(() {
+        _usernameController.text = candidateUsername;
+      });
+      _checkUsernameAvailability(candidateUsername);
+    }
+  }
+
+  /// Sanitizes display name to create valid username
+  String _sanitizeUsername(String displayName) {
+    final sanitized = displayName
+        .toLowerCase()
+        .replaceAll(' ', '')
+        .replaceAll(RegExp(r'[^a-z0-9_]'), '');
+    // Limit to 15 characters
+    return sanitized.length > 15 ? sanitized.substring(0, 15) : sanitized;
+  }
 
   @override
   void dispose() {
@@ -37,14 +135,49 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
+  Future<void> _checkUsernameAvailability(String username) async {
+    if (username.trim().length < 3) {
+      setState(() {
+        _usernameAvailable = true;
+        _checkingUsername = false;
+      });
+      return;
+    }
+
+    setState(() {
+      _checkingUsername = true;
+    });
+
+    try {
+      final isAvailable = await _profileService.isUsernameAvailable(username.trim());
+      if (mounted) {
+        setState(() {
+          _usernameAvailable = isAvailable;
+          _checkingUsername = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _checkingUsername = false;
+        });
+      }
+    }
+  }
+
   Future<void> _signUp() async {
-    // Clear previous error
     setState(() {
       _errorMessage = null;
     });
     
     if (!_formKey.currentState!.validate()) {
-      debugPrint('❌ Form validation failed');
+      return;
+    }
+
+    if (!_usernameAvailable) {
+      setState(() {
+        _errorMessage = 'Username is already taken. Please choose another.';
+      });
       return;
     }
 
@@ -53,62 +186,71 @@ class _RegisterScreenState extends State<RegisterScreen> {
     });
 
     try {
-      debugPrint('📝 Starting registration process...');
-      debugPrint('📧 Email: ${_emailController.text.trim()}');
-      debugPrint('👤 Username: ${_usernameController.text.trim()}');
+      debugPrint('📝 Starting registration...');
       
-      // Create Firebase Auth user
+      // Step 1: Create Firebase Auth account
       final credential = await _authService.createUserWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
 
-      debugPrint('✅ Firebase Auth user created: ${credential?.user?.uid}');
+      if (credential?.user == null) {
+        throw Exception('Failed to create account');
+      }
 
-      if (credential?.user != null) {
-        debugPrint('📄 Creating Firestore profile...');
-        
-        // Create user profile in Firestore
-        await _profileService.createProfile(
-          uid: credential!.user!.uid,
-          username: _usernameController.text.trim().toLowerCase(),
-          email: _emailController.text.trim().toLowerCase(),
-          profession: _professionController.text.trim(),
-          bio: _bioController.text.trim(),
+      debugPrint('✅ Firebase Auth user created: ${credential!.user!.uid}');
+
+      // Step 2: Create Firestore profile
+      await _profileService.createProfile(
+        uid: credential.user!.uid,
+        username: _usernameController.text.trim().toLowerCase(),
+        email: _emailController.text.trim().toLowerCase(),
+        profession: _professionController.text.trim(),
+        bio: _bioController.text.trim(),
+      );
+
+      debugPrint('✅ Firestore profile created');
+
+      // Step 3: Send verification email
+      try {
+        await credential.user!.sendEmailVerification();
+        debugPrint('✅ Verification email sent');
+      } catch (e) {
+        debugPrint('⚠️ Verification email failed: $e');
+      }
+
+      // Step 4: Navigate to verification screen
+      if (mounted) {
+        debugPrint('🔄 Navigating to verification screen...');
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const EmailVerificationScreen()),
+          (route) => false,
         );
-        
-        debugPrint('✅ Firestore profile created successfully');
-        
-        // Show success message
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Account created successfully!'),
-              backgroundColor: Colors.green,
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        }
-        
-        // Pop back - AuthWrapper will automatically detect the logged in user
-        // and redirect to MainNavigation
-        if (mounted) {
-          debugPrint('🔄 Navigating back - AuthWrapper will handle redirect');
-          Navigator.of(context).pop();
-        }
-      } else {
-        throw Exception('Failed to create user account');
       }
     } catch (e) {
       debugPrint('❌ Registration error: $e');
+      
+      // Clean up: if profile creation failed but auth succeeded, delete auth user
+      try {
+        final user = FirebaseAuth.instance.currentUser;
+        if (user != null && e.toString().contains('profile')) {
+          await user.delete();
+        }
+      } catch (_) {}
+      
       if (mounted) {
+        String errorMsg = e.toString();
+        if (errorMsg.contains('email-already-in-use')) {
+          errorMsg = 'This email is already registered. Please sign in.';
+        } else if (errorMsg.contains('Username already taken')) {
+          errorMsg = 'This username is already taken. Please choose another.';
+        } else if (errorMsg.contains('weak-password')) {
+          errorMsg = 'Password is too weak. Please use a stronger password.';
+        }
+        
         setState(() {
-          _errorMessage = e.toString();
-        });
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
+          _errorMessage = errorMsg;
           _isLoading = false;
         });
       }
@@ -157,7 +299,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 const SizedBox(height: 24),
                 
-                // Error Message Display
+                // Error Message
                 if (_errorMessage != null)
                   Container(
                     padding: const EdgeInsets.all(12),
@@ -187,16 +329,39 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                   ),
                 
-                // Username Field
+                // Username Field with availability check
                 TextFormField(
                   controller: _usernameController,
                   textInputAction: TextInputAction.next,
                   enabled: !_isLoading,
                   autocorrect: false,
-                  decoration: const InputDecoration(
+                  onChanged: (value) {
+                    // Debounce username check
+                    Future.delayed(const Duration(milliseconds: 500), () {
+                      if (_usernameController.text == value) {
+                        _checkUsernameAvailability(value);
+                      }
+                    });
+                  },
+                  decoration: InputDecoration(
                     labelText: 'Username *',
                     hintText: 'Choose a unique username',
-                    prefixIcon: Icon(Icons.person_outlined),
+                    prefixIcon: const Icon(Icons.person_outlined),
+                    suffixIcon: _checkingUsername
+                        ? const Padding(
+                            padding: EdgeInsets.all(12),
+                            child: SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          )
+                        : _usernameController.text.length >= 3
+                            ? Icon(
+                                _usernameAvailable ? Icons.check_circle : Icons.cancel,
+                                color: _usernameAvailable ? Colors.green : Colors.red,
+                              )
+                            : null,
                   ),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
@@ -206,7 +371,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       return 'Username must be at least 3 characters';
                     }
                     if (!RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(value.trim())) {
-                      return 'Username can only contain letters, numbers, and underscores';
+                      return 'Only letters, numbers, and underscores allowed';
+                    }
+                    if (!_usernameAvailable) {
+                      return 'Username is already taken';
                     }
                     return null;
                   },
@@ -237,7 +405,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 const SizedBox(height: 16),
                 
-                // Profession Field (Optional)
+                // Profession Field
                 TextFormField(
                   controller: _professionController,
                   textInputAction: TextInputAction.next,
@@ -250,7 +418,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 const SizedBox(height: 16),
                 
-                // Bio Field (Optional)
+                // Bio Field
                 TextFormField(
                   controller: _bioController,
                   maxLines: 2,
@@ -258,7 +426,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   enabled: !_isLoading,
                   decoration: const InputDecoration(
                     labelText: 'Bio',
-                    hintText: 'Tell us a bit about yourself (Optional)',
+                    hintText: 'Tell us about yourself (Optional)',
                     prefixIcon: Icon(Icons.info_outlined),
                     alignLabelWithHint: true,
                   ),
@@ -274,19 +442,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   enabled: !_isLoading,
                   decoration: InputDecoration(
                     labelText: 'Password *',
-                    hintText: 'Create a strong password (min 6 characters)',
+                    hintText: 'Min 6 characters',
                     prefixIcon: const Icon(Icons.lock_outlined),
                     suffixIcon: IconButton(
-                      icon: Icon(
-                        _obscurePassword 
-                            ? Icons.visibility_outlined 
-                            : Icons.visibility_off_outlined,
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          _obscurePassword = !_obscurePassword;
-                        });
-                      },
+                      icon: Icon(_obscurePassword 
+                          ? Icons.visibility_outlined 
+                          : Icons.visibility_off_outlined),
+                      onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                     ),
                   ),
                   validator: (value) {
@@ -301,7 +463,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 const SizedBox(height: 16),
                 
-                // Confirm Password Field
+                // Confirm Password
                 TextFormField(
                   controller: _confirmPasswordController,
                   obscureText: _obscureConfirmPassword,
@@ -313,16 +475,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     hintText: 'Re-enter your password',
                     prefixIcon: const Icon(Icons.lock_outlined),
                     suffixIcon: IconButton(
-                      icon: Icon(
-                        _obscureConfirmPassword 
-                            ? Icons.visibility_outlined 
-                            : Icons.visibility_off_outlined,
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          _obscureConfirmPassword = !_obscureConfirmPassword;
-                        });
-                      },
+                      icon: Icon(_obscureConfirmPassword 
+                          ? Icons.visibility_outlined 
+                          : Icons.visibility_off_outlined),
+                      onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
                     ),
                   ),
                   validator: (value) {
@@ -369,9 +525,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   children: [
                     Text(
                       'Already have an account? ',
-                      style: TextStyle(
-                        color: theme.colorScheme.onSurface.withAlpha(179),
-                      ),
+                      style: TextStyle(color: theme.colorScheme.onSurface.withAlpha(179)),
                     ),
                     TextButton(
                       onPressed: _isLoading ? null : () => Navigator.pop(context),

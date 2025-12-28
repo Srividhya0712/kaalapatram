@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import '../services/auth_service.dart';
 import '../services/user_profile_service.dart';
+import '../main.dart' show suppressAuthNavigation;
 import 'register_screen.dart';
+import 'forgot_password_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -119,6 +121,109 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     }
   }
+
+  Future<void> _signInWithGoogle() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      debugPrint('🔐 Starting Google sign in...');
+      
+      // Step 1: Complete full Google Sign-In (signs into Firebase)
+      final credential = await _authService.signInWithGoogle();
+      
+      if (credential == null) {
+        // User cancelled
+        debugPrint('❌ Google sign in cancelled');
+        return;
+      }
+
+      final email = credential.user?.email;
+      debugPrint('📧 Got Google email: $email');
+
+      if (email == null) {
+        debugPrint('❌ No email from Google account');
+        await _authService.signOut();
+        if (mounted) {
+          setState(() {
+            _errorMessage = 'Could not get email from Google account.';
+          });
+        }
+        return;
+      }
+
+      // Step 2: Check if this email is registered in our system (has a profile in Firestore)
+      final isRegistered = await _profileService.isEmailRegistered(email);
+      
+      if (!isRegistered) {
+        // New user trying to use Google Sign-In - not allowed
+        debugPrint('❌ Email not registered - signing out and redirecting to signup');
+        
+        // Store the display name before signing out
+        final displayName = credential.user?.displayName;
+        
+        // Suppress auth navigation to prevent redirect to LoginScreen
+        suppressAuthNavigation = true;
+        
+        // Sign out completely (Firebase + Google)
+        await _authService.signOut();
+        
+        if (mounted) {
+          // Navigate to signup page with message flag and Google info
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => RegisterScreen(
+                showSignupMessage: true,
+                googleDisplayName: displayName,
+                googleEmail: email,
+              ),
+            ),
+          ).then((_) {
+            // Reset flag when user navigates back from signup
+            suppressAuthNavigation = false;
+          });
+        } else {
+          // Reset flag if not mounted
+          suppressAuthNavigation = false;
+        }
+        return;
+      }
+      
+      debugPrint('✅ Email is registered - allowing login');
+      
+      // Step 3: Email is registered, sync profile
+      if (credential.user != null) {
+        debugPrint('🔄 Syncing user profile...');
+        await _profileService.syncProfile(credential.user!.uid);
+        debugPrint('✅ Profile synced successfully');
+      }
+      
+      // AuthWrapper in main.dart handles navigation automatically
+      debugPrint('✅ Google sign in complete - AuthWrapper will navigate');
+      
+    } catch (e) {
+      debugPrint('❌ Google sign in error: $e');
+      // Clean up on error
+      try {
+        await _authService.signOut();
+      } catch (_) {}
+      
+      if (mounted) {
+        setState(() {
+          _errorMessage = e.toString();
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
   
   void _showSnackBar(String message, {required bool isError}) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -144,78 +249,75 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const SizedBox(height: 40),
+                const SizedBox(height: 20),
                 
-                // App Logo with Gold Theme
+                // App Logo - Using the app image
                 Center(
-                  child: Container(
-                    width: 100,
-                    height: 100,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          theme.colorScheme.primary,
-                          theme.colorScheme.secondary,
-                        ],
-                      ),
-                      borderRadius: BorderRadius.circular(24),
-                      boxShadow: [
-                        BoxShadow(
-                          color: theme.colorScheme.primary.withAlpha(102),
-                          blurRadius: 20,
-                          offset: const Offset(0, 10),
-                        ),
-                      ],
-                    ),
-                    child: const Icon(
-                      Icons.calendar_month_rounded,
-                      size: 50,
-                      color: Colors.white,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: Image.asset(
+                      'assets/images/app_logo.png',
+                      width: 100,
+                      height: 100,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        // Fallback to icon if image fails
+                        return Container(
+                          width: 100,
+                          height: 100,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                theme.colorScheme.primary,
+                                theme.colorScheme.secondary,
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: const Icon(
+                            Icons.calendar_month_rounded,
+                            size: 50,
+                            color: Colors.white,
+                          ),
+                        );
+                      },
                     ),
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 16),
                 
                 // App Name
                 Text(
                   'Kaalapatram',
-                  style: theme.textTheme.headlineMedium?.copyWith(
+                  style: theme.textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: theme.colorScheme.primary,
                   ),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 4),
                 
                 // Tagline
                 Text(
                   'Your Work Calendar & Network',
-                  style: theme.textTheme.bodyLarge?.copyWith(
+                  style: theme.textTheme.bodyMedium?.copyWith(
                     color: theme.colorScheme.onSurface.withAlpha(153),
                   ),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 40),
+                const SizedBox(height: 24),
                 
-                // Welcome Text
+                // Welcome Text (combined)
                 Text(
-                  'Welcome Back!',
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
+                  'Welcome Back! Sign in to continue',
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    fontWeight: FontWeight.w500,
                   ),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  'Sign in to continue',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurface.withAlpha(179),
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 20),
                 
                 // Error Message Display
                 if (_errorMessage != null)
@@ -311,7 +413,12 @@ class _LoginScreenState extends State<LoginScreen> {
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
-                    onPressed: _isLoading ? null : _resetPassword,
+                    onPressed: _isLoading ? null : () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const ForgotPasswordScreen()),
+                      );
+                    },
                     child: Text(
                       'Forgot Password?',
                       style: TextStyle(
@@ -345,6 +452,49 @@ class _LoginScreenState extends State<LoginScreen> {
                             ],
                           )
                         : const Text('Sign In'),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                
+                // Divider with OR
+                Row(
+                  children: [
+                    Expanded(child: Divider(color: theme.colorScheme.onSurface.withAlpha(77))),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Text(
+                        'OR',
+                        style: TextStyle(
+                          color: theme.colorScheme.onSurface.withAlpha(128),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                    Expanded(child: Divider(color: theme.colorScheme.onSurface.withAlpha(77))),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                
+                // Google Sign-In Button
+                SizedBox(
+                  height: 52,
+                  child: OutlinedButton.icon(
+                    onPressed: _isLoading ? null : _signInWithGoogle,
+                    icon: Image.network(
+                      'https://www.google.com/favicon.ico',
+                      width: 24,
+                      height: 24,
+                      errorBuilder: (context, error, stackTrace) => 
+                        const Icon(Icons.g_mobiledata, size: 24),
+                    ),
+                    label: const Text('Continue with Google'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: theme.colorScheme.onSurface,
+                      side: BorderSide(color: theme.colorScheme.outline),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 24),

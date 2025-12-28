@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "1058765419358-gi8gt4j3rnro0rqie4f07r7brsgo0s31.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.kaalapatram",
+            "certificate_hash": "54df43f2ddd118f13d8b7452ac1eb6edbddebc81"
+          }
+        },
+        {
           "client_id": "1058765419358-e9c96b3g0l1vl6lc265ab4klllbmpqgu.apps.googleusercontent.com",
           "client_type": 3
         }

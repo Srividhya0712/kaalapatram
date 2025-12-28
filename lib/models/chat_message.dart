@@ -1,5 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+// Message status for WhatsApp-style sending feedback
+enum MessageStatus { sending, sent, delivered, read, failed }
+
 class ChatMessage {
   final String id;
   final String chatRoomId;
@@ -8,6 +11,7 @@ class ChatMessage {
   final String message;
   final DateTime timestamp;
   final bool isRead;
+  final MessageStatus status;
 
   ChatMessage({
     required this.id,
@@ -17,7 +21,22 @@ class ChatMessage {
     required this.message,
     required this.timestamp,
     this.isRead = false,
+    this.status = MessageStatus.sent,
   });
+
+  // Create a copy with updated status
+  ChatMessage copyWith({MessageStatus? status}) {
+    return ChatMessage(
+      id: id,
+      chatRoomId: chatRoomId,
+      senderId: senderId,
+      senderName: senderName,
+      message: message,
+      timestamp: timestamp,
+      isRead: isRead,
+      status: status ?? this.status,
+    );
+  }
 
   factory ChatMessage.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
@@ -29,6 +48,7 @@ class ChatMessage {
       message: data['message'] ?? '',
       timestamp: (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now(),
       isRead: data['isRead'] ?? false,
+      status: MessageStatus.sent, // Messages from Firestore are already sent
     );
   }
 

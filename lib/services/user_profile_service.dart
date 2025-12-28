@@ -72,6 +72,28 @@ class UserProfileService {
     return null;
   }
 
+  // Check if username is available
+  Future<bool> isUsernameAvailable(String username) async {
+    final existingUser = await _firestore
+        .collection('users')
+        .where('username', isEqualTo: username.toLowerCase())
+        .limit(1)
+        .get();
+    
+    return existingUser.docs.isEmpty;
+  }
+
+  // Check if email is already registered (for Google Sign-In validation)
+  Future<bool> isEmailRegistered(String email) async {
+    final existingUser = await _firestore
+        .collection('users')
+        .where('email', isEqualTo: email.toLowerCase())
+        .limit(1)
+        .get();
+    
+    return existingUser.docs.isNotEmpty;
+  }
+
   // Create and save new profile (both locally and Firestore)
   Future<void> createProfile({
     required String username,

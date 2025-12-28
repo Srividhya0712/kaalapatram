@@ -274,8 +274,12 @@ class _TourOverlayState extends State<TourOverlay> {
   }
 
   void _skip() {
-    widget.onSkip?.call();
-    widget.onComplete();
+    // Call onSkip if provided, otherwise call onComplete
+    if (widget.onSkip != null) {
+      widget.onSkip!();
+    } else {
+      widget.onComplete();
+    }
   }
 
   @override

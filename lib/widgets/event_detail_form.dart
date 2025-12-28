@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:intl/intl.dart';
 import '../models/event.dart';
 import '../services/event_service.dart';
@@ -433,44 +432,25 @@ class _EventDetailFormState extends State<EventDetailForm> {
     }
   }
 
-  Future<void> _makeCall() async {
-    final contact = _employerContactController.text.trim();
-    if (contact.isEmpty) return;
-    final cleanNumber = contact.replaceAll(RegExp(r'[^\d\+]'), '');
-    final Uri uri = Uri(scheme: 'tel', path: cleanNumber);
-    try {
-      if (await canLaunchUrl(uri)) await launchUrl(uri);
-    } catch (e) {
-      _showErrorSnackBar('Could not make call');
-    }
-  }
-
-  Future<void> _sendSms() async {
-    final contact = _employerContactController.text.trim();
-    if (contact.isEmpty) return;
-    final cleanNumber = contact.replaceAll(RegExp(r'[^\d\+]'), '');
-    final Uri uri = Uri(scheme: 'sms', path: cleanNumber);
-    try {
-      if (await canLaunchUrl(uri)) await launchUrl(uri);
-    } catch (e) {
-      _showErrorSnackBar('Could not send SMS');
-    }
-  }
+  // _makeCall and _sendSms methods removed as per user request
 
   @override
   Widget build(BuildContext context) {
     final isNewEvent = widget.existingEvent == null;
     final dateFormatted = DateFormat('EEE, MMM d, yyyy').format(widget.selectedDate);
-    final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
 
-    return Container(
-      height: MediaQuery.of(context).size.height * 0.9,
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      child: Column(
-        children: [
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      resizeToAvoidBottomInset: true,
+      body: Container(
+        height: MediaQuery.of(context).size.height * 0.85,
+        margin: EdgeInsets.only(top: MediaQuery.of(context).size.height * 0.15),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          children: [
           // Handle bar
           Container(
             margin: const EdgeInsets.only(top: 12),
@@ -543,7 +523,8 @@ class _EventDetailFormState extends State<EventDetailForm> {
           // Form content (scrollable)
           Expanded(
             child: SingleChildScrollView(
-              padding: EdgeInsets.only(left: 16, right: 16, top: 16, bottom: bottomPadding + 16),
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+              padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 100),
               child: Form(
                 key: _formKey,
                 child: Column(
@@ -643,32 +624,8 @@ class _EventDetailFormState extends State<EventDetailForm> {
                       required: true,
                     ),
                     
-                    // Quick contact
-                    if (!_isEditing && _employerContactController.text.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 16),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: OutlinedButton.icon(
-                                onPressed: _makeCall,
-                                icon: const Icon(Icons.call, color: Colors.green, size: 18),
-                                label: const Text('Call', style: TextStyle(color: Colors.green)),
-                                style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.green)),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: OutlinedButton.icon(
-                                onPressed: _sendSms,
-                                icon: const Icon(Icons.sms, color: Colors.blue, size: 18),
-                                label: const Text('SMS', style: TextStyle(color: Colors.blue)),
-                                style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.blue)),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                    
+                    // Quick contact buttons removed as per user request
                     
                     // Payment Section
                     if (!widget.isReadOnly) ...[
@@ -695,7 +652,8 @@ class _EventDetailFormState extends State<EventDetailForm> {
               ),
             ),
           ),
-        ],
+          ],
+        ),
       ),
     );
   }

@@ -1,0 +1,2 @@
+D:/kaalapatram/android/app/.cxx/Debug/l55i7125/arm64-v8a/CMakeFiles/edit_cache.dir
+D:/kaalapatram/android/app/.cxx/Debug/l55i7125/arm64-v8a/CMakeFiles/rebuild_cache.dir

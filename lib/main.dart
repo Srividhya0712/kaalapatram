@@ -5,13 +5,21 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'l10n/generated/app_localizations.dart';
 import 'screens/login_screen.dart';
 import 'screens/main_navigation.dart';
 import 'screens/onboarding_screen.dart';
+import 'screens/email_verification_screen.dart';
 import 'providers/theme_provider.dart';
+import 'providers/locale_provider.dart';
+import 'services/user_profile_service.dart';
 
 // Global navigator key for handling navigation from anywhere
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
+// Flag to temporarily suppress auth state navigation (used during Google Sign-In redirect to signup)
+bool suppressAuthNavigation = false;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -65,7 +73,7 @@ class AppColors {
   static const Color onSurfaceDark = Color(0xFFF5F5F5);
 }
 
-class KaalapatramApp extends StatefulWidget {
+class KaalapatramApp extends ConsumerStatefulWidget {
   final bool firebaseInitialized;
   final String? errorMessage;
   final bool hasSeenOnboarding;
@@ -78,10 +86,10 @@ class KaalapatramApp extends StatefulWidget {
   });
 
   @override
-  State<KaalapatramApp> createState() => _KaalapatramAppState();
+  ConsumerState<KaalapatramApp> createState() => _KaalapatramAppState();
 }
 
-class _KaalapatramAppState extends State<KaalapatramApp> {
+class _KaalapatramAppState extends ConsumerState<KaalapatramApp> {
   late bool _hasSeenOnboarding;
   
   @override
@@ -91,17 +99,49 @@ class _KaalapatramAppState extends State<KaalapatramApp> {
     
     // Listen to auth state changes and navigate accordingly
     if (widget.firebaseInitialized) {
-      FirebaseAuth.instance.authStateChanges().listen((User? user) {
+      FirebaseAuth.instance.authStateChanges().listen((User? user) async {
         debugPrint('🔄 Auth state changed: ${user?.email ?? 'null'}');
         
         if (navigatorKey.currentState != null && _hasSeenOnboarding) {
           if (user != null) {
-            debugPrint('👤 User logged in - navigating to MainNavigation');
+            // Check if navigation is suppressed (e.g., during Google Sign-In redirect to signup)
+            if (suppressAuthNavigation) {
+              debugPrint('🚫 Auth navigation suppressed - skipping navigation');
+              return;
+            }
+            
+            // Check if email is verified
+            if (!user.emailVerified) {
+              debugPrint('📧 Email NOT verified - navigating to EmailVerificationScreen');
+              navigatorKey.currentState!.pushAndRemoveUntil(
+                MaterialPageRoute(builder: (context) => const EmailVerificationScreen()),
+                (route) => false,
+              );
+              return;
+            }
+            
+            // Additional check: Verify user has a profile in Firestore
+            // This prevents Google Sign-In from allowing unregistered users
+            final profileService = UserProfileService();
+            final hasProfile = await profileService.isEmailRegistered(user.email ?? '');
+            
+            if (!hasProfile) {
+              debugPrint('❌ User has no profile - signing out');
+              await FirebaseAuth.instance.signOut();
+              return;
+            }
+            
+            debugPrint('👤 User logged in & verified with profile - navigating to MainNavigation');
             navigatorKey.currentState!.pushAndRemoveUntil(
               MaterialPageRoute(builder: (context) => const MainNavigation()),
               (route) => false,
             );
           } else {
+            // Check if navigation is suppressed (e.g., during Google Sign-In redirect to signup)
+            if (suppressAuthNavigation) {
+              debugPrint('🚫 Auth navigation suppressed - skipping redirect to LoginScreen');
+              return;
+            }
             debugPrint('🚪 User logged out - navigating to LoginScreen');
             navigatorKey.currentState!.pushAndRemoveUntil(
               MaterialPageRoute(builder: (context) => const LoginScreen()),
@@ -118,21 +158,22 @@ class _KaalapatramAppState extends State<KaalapatramApp> {
       _hasSeenOnboarding = true;
     });
     
-    // Navigate to the appropriate screen after onboarding
-    if (navigatorKey.currentState != null) {
+    // Use post frame callback to ensure widget tree is ready
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      
       final currentUser = FirebaseAuth.instance.currentUser;
-      if (currentUser != null) {
-        navigatorKey.currentState!.pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => const MainNavigation()),
-          (route) => false,
-        );
+      final route = currentUser != null 
+          ? MaterialPageRoute(builder: (context) => const MainNavigation())
+          : MaterialPageRoute(builder: (context) => const LoginScreen());
+      
+      if (navigatorKey.currentState != null) {
+        navigatorKey.currentState!.pushAndRemoveUntil(route, (route) => false);
       } else {
-        navigatorKey.currentState!.pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => const LoginScreen()),
-          (route) => false,
-        );
+        // Fallback: use Navigator.of(context) if navigatorKey not available
+        Navigator.of(context).pushAndRemoveUntil(route, (route) => false);
       }
-    }
+    });
   }
 
   ThemeData _buildLightTheme() {
@@ -439,6 +480,11 @@ class _KaalapatramAppState extends State<KaalapatramApp> {
     debugPrint('🔍 Initial auth check: ${currentUser?.email ?? 'not logged in'}');
     
     if (currentUser != null) {
+      // Check if email is verified
+      if (!currentUser.emailVerified) {
+        debugPrint('📧 Email not verified - showing verification screen');
+        return const EmailVerificationScreen();
+      }
       return const MainNavigation();
     }
     return const LoginScreen();
@@ -446,12 +492,32 @@ class _KaalapatramAppState extends State<KaalapatramApp> {
 
   @override
   Widget build(BuildContext context) {
+    // Watch theme mode from provider
+    final themeMode = ref.watch(themeModeProvider);
+    // Watch locale from provider
+    final locale = ref.watch(localeProvider);
+    
     return MaterialApp(
-      title: 'Kaalapatram - காலப்பட்டிரம்',
+      title: 'Kaalapatram - காலப்பத்திரம்',
       navigatorKey: navigatorKey,
       debugShowCheckedModeBanner: false,
+      
+      // Localization support for Tamil and English
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('en'), // English
+        Locale('ta'), // Tamil
+      ],
+      locale: locale, // Use dynamic locale from provider
+      
       theme: _buildLightTheme(),
-      themeMode: ThemeMode.light, // Always use light mode
+      darkTheme: _buildDarkTheme(),
+      themeMode: themeMode, // Use dynamic theme from provider
       home: _getInitialScreen(),
     );
   }

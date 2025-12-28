@@ -8,6 +8,7 @@ import '../models/connection.dart';
 import '../services/event_service.dart';
 import '../services/connection_service.dart';
 import '../services/user_profile_service.dart';
+import '../l10n/generated/app_localizations.dart';
 import 'search_users_screen.dart';
 import 'manage_connections_screen.dart';
 
@@ -35,6 +36,7 @@ class _ConnectionsCalendarState extends State<ConnectionsCalendar> {
   String? _errorMessage;
   
   StreamSubscription<List<Connection>>? _connectionsSubscription;
+  Map<String, StreamSubscription<List<Event>>> _eventSubscriptions = {};
 
   // Teal color for Network Calendar
   static const Color connectionsTeal = Color(0xFF26A69A);
@@ -50,6 +52,11 @@ class _ConnectionsCalendarState extends State<ConnectionsCalendar> {
   @override
   void dispose() {
     _connectionsSubscription?.cancel();
+    // Cancel all event subscriptions
+    for (final sub in _eventSubscriptions.values) {
+      sub.cancel();
+    }
+    _eventSubscriptions.clear();
     super.dispose();
   }
 
@@ -116,80 +123,93 @@ class _ConnectionsCalendarState extends State<ConnectionsCalendar> {
     }
 
     // Load events for all connected users
-    await _loadAllConnectionsEvents();
+    _setupEventSubscriptions();
   }
 
-  Future<void> _loadAllConnectionsEvents() async {
-    final allEvents = <Event>[];
+  /// Sets up real-time event subscriptions for current user and all connections
+  void _setupEventSubscriptions() {
+    // Cancel existing event subscriptions first
+    for (final sub in _eventSubscriptions.values) {
+      sub.cancel();
+    }
+    _eventSubscriptions.clear();
     
-    // First, load current user's own events
+    final allUserIds = <String>{};
+    
+    // Add current user
     if (_currentUserId != null) {
-      try {
-        debugPrint('🔍 Loading MY events...');
-        final myEvents = await _eventService
-            .getUserEvents(_currentUserId!)
-            .first
-            .timeout(
-              const Duration(seconds: 10),
-              onTimeout: () => <Event>[],
-            );
-        
-        debugPrint('   ✅ Found ${myEvents.length} of my events');
-        allEvents.addAll(myEvents);
-        
-        // Add current user to names map
-        final profile = await _profileService.getProfileLocally();
-        if (profile != null) {
-          _userNames[_currentUserId!] = '${profile.username} (Me)';
+      allUserIds.add(_currentUserId!);
+      
+      // Add current user to names map
+      _profileService.getProfileLocally().then((profile) {
+        if (profile != null && mounted) {
+          setState(() {
+            _userNames[_currentUserId!] = '${profile.username} (Me)';
+          });
         }
-      } catch (e) {
-        debugPrint('   ❌ Error loading my events: $e');
-      }
+      });
     }
     
-    // Then load connections' events (even if no connections, show user's events)
-    if (_connections.isEmpty) {
-      debugPrint('📭 ConnectionsCalendar: No connections, showing only my events');
-      setState(() {
-        _connectionsEvents = allEvents;
-        _isLoading = false;
-      });
+    // Add all connected users
+    for (final connection in _connections) {
+      final otherUserId = connection.getOtherUserId(_currentUserId!);
+      allUserIds.add(otherUserId);
+    }
+    
+    if (allUserIds.isEmpty) {
+      debugPrint('📭 ConnectionsCalendar: No users to load events for');
+      if (mounted) {
+        setState(() {
+          _connectionsEvents = [];
+          _isLoading = false;
+        });
+      }
       return;
     }
     
-    for (final connection in _connections) {
-      final otherUserId = connection.getOtherUserId(_currentUserId!);
-      
-      try {
-        debugPrint('🔍 Loading events for: ${_userNames[otherUserId]} ($otherUserId)');
-        
-        // Get events for this connected user (with timeout)
-        final userEvents = await _eventService
-            .getUserEvents(otherUserId)
-            .first
-            .timeout(
-              const Duration(seconds: 10),
-              onTimeout: () {
-                debugPrint('⏰ Timeout loading events for $otherUserId');
-                return <Event>[];
-              },
-            );
-        
-        debugPrint('   ✅ Found ${userEvents.length} events');
-        allEvents.addAll(userEvents);
-      } catch (e) {
-        debugPrint('   ❌ Error loading events for $otherUserId: $e');
-      }
-    }
-
-    debugPrint('📊 ConnectionsCalendar: Total events loaded: ${allEvents.length}');
+    debugPrint('🔍 Setting up event subscriptions for ${allUserIds.length} users');
     
-    if (mounted) {
-      setState(() {
-        _connectionsEvents = allEvents;
-        _isLoading = false;
-      });
+    // Create a map to store events by user
+    final eventsByUser = <String, List<Event>>{};
+    int loadedCount = 0;
+    
+    for (final userId in allUserIds) {
+      debugPrint('   📥 Subscribing to events for: ${_userNames[userId] ?? userId}');
+      
+      final subscription = _eventService.getUserEvents(userId).listen(
+        (events) {
+          debugPrint('   ✅ Received ${events.length} events for ${_userNames[userId] ?? userId}');
+          eventsByUser[userId] = events;
+          
+          // Update combined events list
+          final allEvents = <Event>[];
+          for (final userEvents in eventsByUser.values) {
+            allEvents.addAll(userEvents);
+          }
+          
+          if (mounted) {
+            setState(() {
+              _connectionsEvents = allEvents;
+              _isLoading = false;
+            });
+          }
+        },
+        onError: (error) {
+          debugPrint('   ❌ Error loading events for $userId: $error');
+          loadedCount++;
+          if (loadedCount >= allUserIds.length && mounted) {
+            setState(() => _isLoading = false);
+          }
+        },
+      );
+      
+      _eventSubscriptions[userId] = subscription;
     }
+  }
+
+  Future<void> _loadAllConnectionsEvents() async {
+    // Now just calls _setupEventSubscriptions for real-time updates
+    _setupEventSubscriptions();
   }
 
   Future<void> _refreshData() async {
@@ -502,9 +522,16 @@ class _ConnectionsCalendarState extends State<ConnectionsCalendar> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.menu),
+          onPressed: () {
+            Scaffold.of(context).openDrawer();
+          },
+          tooltip: 'Menu',
+        ),
         title: Column(
           children: [
-            const Text('Network Calendar'),
+            Text(AppLocalizations.of(context)?.networkCalendar ?? 'Network Calendar'),
             Text(
               'Your events & connections\' events',
               style: TextStyle(
@@ -711,6 +738,12 @@ class _ConnectionsCalendarState extends State<ConnectionsCalendar> {
               ),
               markersMaxCount: 1,
             ),
+            
+            // Fix: Simplified to Month and Week only (removed confusing 2-weeks)
+            availableCalendarFormats: const {
+              CalendarFormat.month: 'Month',
+              CalendarFormat.week: 'Week',
+            },
             
             headerStyle: HeaderStyle(
               formatButtonVisible: true,

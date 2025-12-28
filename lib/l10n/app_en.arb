@@ -1,0 +1,346 @@
+{
+  "@@locale": "en",
+  "@@last_modified": "2025-12-26",
+  
+  "appName": "Kaalapatram",
+  "@appName": {"description": "App name"},
+  
+  "tagline": "Your Work Calendar & Network",
+  "@tagline": {"description": "App tagline"},
+  
+  "welcomeBack": "Welcome Back!",
+  "@welcomeBack": {"description": "Welcome message on login"},
+  
+  "signInToContinue": "Sign in to continue",
+  "@signInToContinue": {"description": "Login subtitle"},
+  
+  "email": "Email",
+  "@email": {"description": "Email field label"},
+  
+  "enterEmail": "Enter your email address",
+  "@enterEmail": {"description": "Email field hint"},
+  
+  "password": "Password",
+  "@password": {"description": "Password field label"},
+  
+  "enterPassword": "Enter your password",
+  "@enterPassword": {"description": "Password field hint"},
+  
+  "forgotPassword": "Forgot Password?",
+  "@forgotPassword": {"description": "Forgot password button"},
+  
+  "signIn": "Sign In",
+  "@signIn": {"description": "Sign in button"},
+  
+  "signingIn": "Signing In...",
+  "@signingIn": {"description": "Signing in loading text"},
+  
+  "or": "OR",
+  "@or": {"description": "Divider text"},
+  
+  "continueWithGoogle": "Continue with Google",
+  "@continueWithGoogle": {"description": "Google sign in button"},
+  
+  "dontHaveAccount": "Don't have an account?",
+  "@dontHaveAccount": {"description": "Register prompt"},
+  
+  "signUp": "Sign Up",
+  "@signUp": {"description": "Sign up button"},
+  
+  "calendar": "Calendar",
+  "@calendar": {"description": "Calendar tab"},
+  
+  "network": "Network",
+  "@network": {"description": "Network tab"},
+  
+  "chats": "Chats",
+  "@chats": {"description": "Chats tab"},
+  
+  "profile": "Profile",
+  "@profile": {"description": "Profile section"},
+  
+  "manageConnections": "Manage Connections",
+  "@manageConnections": {"description": "Manage connections menu item"},
+  
+  "notifications": "Notifications",
+  "@notifications": {"description": "Notifications menu item"},
+  
+  "settings": "Settings",
+  "@settings": {"description": "Settings menu item"},
+  
+  "themeAppearance": "Theme & Appearance",
+  "@themeAppearance": {"description": "Theme settings menu item"},
+  
+  "language": "Language",
+  "@language": {"description": "Language settings menu item"},
+  
+  "feedbackSupport": "Feedback & Support",
+  "@feedbackSupport": {"description": "Feedback menu item"},
+  
+  "about": "About",
+  "@about": {"description": "About menu item"},
+  
+  "logout": "Logout",
+  "@logout": {"description": "Logout button"},
+  
+  "deleteAccount": "Delete Account",
+  "@deleteAccount": {"description": "Delete account option"},
+  
+  "permanentlyDeleteAccount": "Permanently delete your account",
+  "@permanentlyDeleteAccount": {"description": "Delete account subtitle"},
+  
+  "deleteAccountWarning": "Are you sure you want to delete your account?",
+  "@deleteAccountWarning": {"description": "Delete confirmation question"},
+  
+  "deleteAccountInfo": "This action will permanently delete:",
+  "@deleteAccountInfo": {"description": "Delete info header"},
+  
+  "yourProfile": "Your profile and personal information",
+  "@yourProfile": {"description": "Delete info item"},
+  
+  "allEvents": "All your events",
+  "@allEvents": {"description": "Delete info item"},
+  
+  "allConnections": "All your connections",
+  "@allConnections": {"description": "Delete info item"},
+  
+  "allMessages": "All your chat messages",
+  "@allMessages": {"description": "Delete info item"},
+  
+  "cannotBeUndone": "This action cannot be undone!",
+  "@cannotBeUndone": {"description": "Delete warning"},
+  
+  "cancel": "Cancel",
+  "@cancel": {"description": "Cancel button"},
+  
+  "deleteForever": "Delete Forever",
+  "@deleteForever": {"description": "Delete confirmation button"},
+  
+  "deletingAccount": "Deleting account...",
+  "@deletingAccount": {"description": "Deleting loading text"},
+  
+  "accountDeleted": "Your account has been deleted",
+  "@accountDeleted": {"description": "Delete success message"},
+  
+  "myCalendar": "My Calendar",
+  "@myCalendar": {"description": "My calendar title"},
+  
+  "networkCalendar": "Network Calendar",
+  "@networkCalendar": {"description": "Network calendar title"},
+  
+  "month": "Month",
+  "@month": {"description": "Calendar format month"},
+  
+  "twoWeeks": "2 Weeks",
+  "@twoWeeks": {"description": "Calendar format two weeks"},
+  
+  "week": "Week",
+  "@week": {"description": "Calendar format week"},
+  
+  "addEvent": "Add Event",
+  "@addEvent": {"description": "Add event button"},
+  
+  "editEvent": "Edit Event",
+  "@editEvent": {"description": "Edit event title"},
+  
+  "eventDetails": "Event Details",
+  "@eventDetails": {"description": "Event details title"},
+  
+  "time": "Time",
+  "@time": {"description": "Time field label"},
+  
+  "tamilDate": "Tamil Date",
+  "@tamilDate": {"description": "Tamil date field label"},
+  
+  "selectTamilDate": "Select Tamil Date",
+  "@selectTamilDate": {"description": "Tamil date picker title"},
+  
+  "selectDay": "Select Day",
+  "@selectDay": {"description": "Day selection label"},
+  
+  "select": "Select",
+  "@select": {"description": "Select button"},
+  
+  "workDetails": "Work Details",
+  "@workDetails": {"description": "Work details section"},
+  
+  "assignedBy": "Assigned By",
+  "@assignedBy": {"description": "Assigned by field"},
+  
+  "whoAssigned": "Who assigned this work?",
+  "@whoAssigned": {"description": "Assigned by hint"},
+  
+  "whatToCarry": "What to Carry",
+  "@whatToCarry": {"description": "What to carry field"},
+  
+  "listItems": "List items to bring...",
+  "@listItems": {"description": "What to carry hint"},
+  
+  "employerInfo": "Employer Info",
+  "@employerInfo": {"description": "Employer info section"},
+  
+  "employerName": "Employer Name",
+  "@employerName": {"description": "Employer name field"},
+  
+  "nameOfEmployer": "Name of the employer",
+  "@nameOfEmployer": {"description": "Employer name hint"},
+  
+  "contactNumber": "Contact Number",
+  "@contactNumber": {"description": "Contact number field"},
+  
+  "phoneNumber": "Phone number",
+  "@phoneNumber": {"description": "Contact number hint"},
+  
+  "payment": "Payment",
+  "@payment": {"description": "Payment section"},
+  
+  "amount": "Amount (₹)",
+  "@amount": {"description": "Amount field"},
+  
+  "enterAmount": "Enter payment amount",
+  "@enterAmount": {"description": "Amount hint"},
+  
+  "saveChanges": "Save Changes",
+  "@saveChanges": {"description": "Save changes button"},
+  
+  "createEvent": "Create Event",
+  "@createEvent": {"description": "Create event button"},
+  
+  "deleteEvent": "Delete Event",
+  "@deleteEvent": {"description": "Delete event button"},
+  
+  "editThisEvent": "Edit This Event",
+  "@editThisEvent": {"description": "Edit event button"},
+  
+  "eventCreated": "Event created successfully",
+  "@eventCreated": {"description": "Event created message"},
+  
+  "eventUpdated": "Event updated successfully",
+  "@eventUpdated": {"description": "Event updated message"},
+  
+  "eventDeleted": "Event deleted",
+  "@eventDeleted": {"description": "Event deleted message"},
+  
+  "required": "Required",
+  "@required": {"description": "Required field error"},
+  
+  "noEvents": "No events for this day",
+  "@noEvents": {"description": "No events message"},
+  
+  "tapToAdd": "Tap + to add an event",
+  "@tapToAdd": {"description": "Add event hint"},
+  
+  "connections": "Connections",
+  "@connections": {"description": "Connections title"},
+  
+  "pending": "Pending",
+  "@pending": {"description": "Pending tab"},
+  
+  "accepted": "Accepted",
+  "@accepted": {"description": "Accepted status"},
+  
+  "sendRequest": "Send Request",
+  "@sendRequest": {"description": "Send connection request button"},
+  
+  "accept": "Accept",
+  "@accept": {"description": "Accept button"},
+  
+  "reject": "Reject",
+  "@reject": {"description": "Reject button"},
+  
+  "connected": "Connected",
+  "@connected": {"description": "Connected status"},
+  
+  "noConnections": "No connections yet",
+  "@noConnections": {"description": "No connections message"},
+  
+  "searchUsers": "Search users...",
+  "@searchUsers": {"description": "Search users placeholder"},
+  
+  "messages": "Messages",
+  "@messages": {"description": "Messages title"},
+  
+  "typeMessage": "Type a message...",
+  "@typeMessage": {"description": "Message input placeholder"},
+  
+  "noChats": "No chats yet",
+  "@noChats": {"description": "No chats message"},
+  
+  "startConversation": "Start a conversation with your connections",
+  "@startConversation": {"description": "No chats hint"},
+  
+  "today": "Today",
+  "@today": {"description": "Today label"},
+  
+  "yesterday": "Yesterday",
+  "@yesterday": {"description": "Yesterday label"},
+  
+  "editProfile": "Edit Profile",
+  "@editProfile": {"description": "Edit profile button"},
+  
+  "username": "Username",
+  "@username": {"description": "Username field"},
+  
+  "profession": "Profession",
+  "@profession": {"description": "Profession field"},
+  
+  "bio": "Bio",
+  "@bio": {"description": "Bio field"},
+  
+  "save": "Save",
+  "@save": {"description": "Save button"},
+  
+  "profileUpdated": "Profile updated successfully",
+  "@profileUpdated": {"description": "Profile updated message"},
+  
+  "quickActions": "Quick Actions",
+  "@quickActions": {"description": "Quick actions section"},
+  
+  "updatePersonalInfo": "Update your personal information",
+  "@updatePersonalInfo": {"description": "Edit profile subtitle"},
+  
+  "addRemoveConnections": "Add or remove connections",
+  "@addRemoveConnections": {"description": "Manage connections subtitle"},
+  
+  "manageNotifications": "Manage notification settings",
+  "@manageNotifications": {"description": "Notification settings subtitle"},
+  
+  "controlPrivacy": "Control your privacy preferences",
+  "@controlPrivacy": {"description": "Privacy settings subtitle"},
+  
+  "viewAppTour": "View App Tour",
+  "@viewAppTour": {"description": "App tour menu item"},
+  
+  "learnHowToUse": "Learn how to use the app",
+  "@learnHowToUse": {"description": "App tour subtitle"},
+  
+  "tourReset": "Tour reset! Switch tabs to see the tour again.",
+  "@tourReset": {"description": "Tour reset message"},
+  
+  "privacySettings": "Privacy Settings",
+  "@privacySettings": {"description": "Privacy settings menu item"},
+  
+  "notificationSettings": "Notification Settings",
+  "@notificationSettings": {"description": "Notification settings menu item"},
+  
+  "comingSoon": "Coming Soon!",
+  "@comingSoon": {"description": "Coming soon message"},
+  
+  "logoutConfirm": "Are you sure you want to logout?",
+  "@logoutConfirm": {"description": "Logout confirmation message"},
+  
+  "failedToSignOut": "Failed to sign out",
+  "@failedToSignOut": {"description": "Sign out error message"},
+  
+  "passwordResetSent": "Password reset email sent! Check your inbox.",
+  "@passwordResetSent": {"description": "Password reset success message"},
+  
+  "pleaseEnterEmail": "Please enter your email address first",
+  "@pleaseEnterEmail": {"description": "Email required message"},
+  
+  "pleaseEnterValidEmail": "Please enter a valid email address",
+  "@pleaseEnterValidEmail": {"description": "Invalid email message"},
+  
+  "passwordMinLength": "Password must be at least 6 characters",
+  "@passwordMinLength": {"description": "Password length error"}
+}

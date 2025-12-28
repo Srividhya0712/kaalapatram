@@ -286,6 +286,21 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           const Divider(),
           ListTile(
             leading: Icon(
+              Icons.delete_forever,
+              color: theme.colorScheme.error,
+            ),
+            title: Text(
+              'Delete Account',
+              style: TextStyle(color: theme.colorScheme.error),
+            ),
+            subtitle: const Text('Permanently delete your account'),
+            onTap: () {
+              Navigator.pop(context);
+              _showDeleteAccountConfirmation();
+            },
+          ),
+          ListTile(
+            leading: Icon(
               Icons.logout,
               color: theme.colorScheme.error,
             ),
@@ -301,6 +316,107 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _showDeleteAccountConfirmation() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.warning, color: Colors.red),
+            SizedBox(width: 8),
+            Text('Delete Account'),
+          ],
+        ),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Are you sure you want to delete your account?',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 12),
+            Text('This action will permanently delete:'),
+            SizedBox(height: 8),
+            Text('• Your profile and personal information'),
+            Text('• All your events'),
+            Text('• All your connections'),
+            Text('• All your chat messages'),
+            SizedBox(height: 12),
+            Text(
+              'This action cannot be undone!',
+              style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Delete Forever'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      _deleteAccount();
+    }
+  }
+
+  Future<void> _deleteAccount() async {
+    // Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const AlertDialog(
+        content: Row(
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(width: 16),
+            Text('Deleting account...'),
+          ],
+        ),
+      ),
+    );
+
+    try {
+      await _authService.deleteAccount();
+      await _profileService.clearLocalProfile();
+      
+      if (mounted) {
+        Navigator.of(context).pop(); // Close loading dialog
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const LoginScreen()),
+          (route) => false,
+        );
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Your account has been deleted'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.of(context).pop(); // Close loading dialog
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to delete account: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _showLogoutConfirmation() async {

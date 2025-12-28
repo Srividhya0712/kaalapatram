@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../models/event.dart';
 import '../providers/providers.dart';
 import '../widgets/event_detail_form.dart';
+import '../l10n/generated/app_localizations.dart';
 import 'search_users_screen.dart';
 
 class MyCalendar extends ConsumerStatefulWidget {
@@ -73,7 +74,7 @@ class _MyCalendarState extends ConsumerState<MyCalendar> {
           children: [
             // Header
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
               decoration: BoxDecoration(
                 color: goldColor,
                 boxShadow: [
@@ -86,6 +87,17 @@ class _MyCalendarState extends ConsumerState<MyCalendar> {
               ),
               child: Row(
                 children: [
+                  // Hamburger menu button
+                  IconButton(
+                    onPressed: () {
+                      Scaffold.of(context).openDrawer();
+                    },
+                    icon: const Icon(Icons.menu, color: Colors.white, size: 28),
+                    tooltip: 'Menu',
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                  const SizedBox(width: 12),
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
@@ -99,10 +111,10 @@ class _MyCalendarState extends ConsumerState<MyCalendar> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'My Calendar',
-                          style: TextStyle(
-                            fontSize: 22,
+                        Text(
+                          AppLocalizations.of(context)?.myCalendar ?? 'My Calendar',
+                          style: const TextStyle(
+                            fontSize: 20,
                             fontWeight: FontWeight.bold,
                             color: Colors.white,
                           ),
@@ -110,7 +122,7 @@ class _MyCalendarState extends ConsumerState<MyCalendar> {
                         Text(
                           'Your personal work events',
                           style: TextStyle(
-                            fontSize: 13,
+                            fontSize: 12,
                             color: Colors.white.withAlpha(204),
                           ),
                         ),
@@ -207,6 +219,12 @@ class _MyCalendarState extends ConsumerState<MyCalendar> {
                             markerSize: 6,
                             markerMargin: const EdgeInsets.only(top: 1),
                           ),
+                          
+                          // Fix: Simplified to Month and Week only (removed confusing 2-weeks)
+                          availableCalendarFormats: const {
+                            CalendarFormat.month: 'Month',
+                            CalendarFormat.week: 'Week',
+                          },
                           
                           headerStyle: HeaderStyle(
                             formatButtonVisible: true,

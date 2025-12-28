@@ -6,6 +6,8 @@ import '../models/connection.dart';
 import '../services/chat_service.dart';
 import '../services/connection_service.dart';
 import '../services/user_profile_service.dart';
+import '../services/presence_service.dart';
+import '../l10n/generated/app_localizations.dart';
 import 'chat_screen.dart';
 
 class ChatListScreen extends StatefulWidget {
@@ -19,6 +21,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
   final ChatService _chatService = ChatService();
   final ConnectionService _connectionService = ConnectionService();
   final UserProfileService _profileService = UserProfileService();
+  final PresenceService _presenceService = PresenceService();
   
   String? _currentUserId;
   String? _currentUserName;
@@ -26,6 +29,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
   bool _isLoading = true;
 
   StreamSubscription<List<ChatRoom>>? _chatRoomsSubscription;
+  StreamSubscription<List<Connection>>? _connectionsSubscription;
   List<ChatRoom> _chatRooms = [];
 
   static const Color goldColor = Color(0xFFD4AF37);
@@ -40,6 +44,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
   @override
   void dispose() {
     _chatRoomsSubscription?.cancel();
+    _connectionsSubscription?.cancel();
     super.dispose();
   }
 
@@ -53,13 +58,18 @@ class _ChatListScreenState extends State<ChatListScreen> {
       _currentUserId = profile.uid;
       _currentUserName = profile.username;
 
-      // Get connections
-      final connections = await _connectionService
+      // Subscribe to connections (real-time)
+      _connectionsSubscription = _connectionService
           .getAcceptedConnections(_currentUserId!)
-          .first;
-      _connections = connections;
+          .listen((connections) {
+        if (mounted) {
+          setState(() {
+            _connections = connections;
+          });
+        }
+      });
 
-      // Subscribe to chat rooms
+      // Subscribe to chat rooms (real-time)
       _chatRoomsSubscription = _chatService
           .getChatRooms(_currentUserId!)
           .listen((rooms) {
@@ -76,6 +86,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
       if (mounted) setState(() => _isLoading = false);
     }
   }
+
 
   void _openChat(Connection connection) async {
     final otherUserId = connection.getOtherUserId(_currentUserId!);
@@ -119,7 +130,14 @@ class _ChatListScreenState extends State<ChatListScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Messages'),
+        leading: IconButton(
+          icon: const Icon(Icons.menu),
+          onPressed: () {
+            Scaffold.of(context).openDrawer();
+          },
+          tooltip: 'Menu',
+        ),
+        title: Text(AppLocalizations.of(context)?.messages ?? 'Messages'),
         backgroundColor: goldColor,
         foregroundColor: Colors.white,
       ),
@@ -198,75 +216,146 @@ class _ChatListScreenState extends State<ChatListScreen> {
     final isUnread = unreadCount > 0;
     final timeString = _formatTime(room.lastMessageTime);
 
-    return ListTile(
-      onTap: () => _openExistingChat(room),
-      leading: Container(
-        width: 50,
-        height: 50,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: LinearGradient(
-            colors: [goldColor, tealColor],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: Center(
-          child: Text(
-            otherUserName.isNotEmpty ? otherUserName[0].toUpperCase() : '?',
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 20,
-            ),
-          ),
-        ),
+    return Dismissible(
+      key: Key(room.id),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        color: Colors.red,
+        child: const Icon(Icons.delete, color: Colors.white),
       ),
-      title: Text(
-        otherUserName,
-        style: TextStyle(
-          fontWeight: isUnread ? FontWeight.bold : FontWeight.normal,
-        ),
-      ),
-      subtitle: Text(
-        room.lastMessage.isEmpty ? 'No messages yet' : room.lastMessage,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: TextStyle(
-          color: isUnread ? Colors.black87 : Colors.grey,
-          fontWeight: isUnread ? FontWeight.w500 : FontWeight.normal,
-        ),
-      ),
-      trailing: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          Text(
-            timeString,
-            style: TextStyle(
-              color: isUnread ? tealColor : Colors.grey,
-              fontSize: 12,
-            ),
-          ),
-          if (isUnread) ...[
-            const SizedBox(height: 4),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              decoration: BoxDecoration(
-                color: tealColor,
-                borderRadius: BorderRadius.circular(10),
+      confirmDismiss: (direction) async {
+        return await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Delete Chat'),
+            content: Text('Delete conversation with $otherUserName?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancel'),
               ),
-              child: Text(
-                '$unreadCount',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                child: const Text('Delete'),
+              ),
+            ],
+          ),
+        ) ?? false;
+      },
+      onDismissed: (direction) async {
+        try {
+          await _chatService.deleteChatRoom(room.id);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Chat deleted'), backgroundColor: Colors.green),
+            );
+          }
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Failed to delete: $e'), backgroundColor: Colors.red),
+            );
+          }
+        }
+      },
+      child: ListTile(
+        onTap: () => _openExistingChat(room),
+        leading: Stack(
+          children: [
+            Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  colors: [goldColor, tealColor],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+              child: Center(
+                child: Text(
+                  otherUserName.isNotEmpty ? otherUserName[0].toUpperCase() : '?',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 20,
+                  ),
                 ),
               ),
             ),
+            // Online status indicator
+            StreamBuilder<bool>(
+              stream: _presenceService.isUserOnline(room.getOtherUserId(_currentUserId!)),
+              builder: (context, snapshot) {
+                final isOnline = snapshot.data ?? false;
+                if (!isOnline) return const SizedBox.shrink();
+                return Positioned(
+                  right: 0,
+                  bottom: 0,
+                  child: Container(
+                    width: 14,
+                    height: 14,
+                    decoration: BoxDecoration(
+                      color: Colors.green,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 2),
+                    ),
+                  ),
+                );
+              },
+            ),
           ],
-        ],
+        ),
+        title: Text(
+          otherUserName,
+          style: TextStyle(
+            fontWeight: isUnread ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
+        subtitle: Text(
+          room.lastMessage.isEmpty ? 'No messages yet' : room.lastMessage,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: isUnread ? Colors.black87 : Colors.grey,
+            fontWeight: isUnread ? FontWeight.w500 : FontWeight.normal,
+          ),
+        ),
+        trailing: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(
+              timeString,
+              style: TextStyle(
+                color: isUnread ? tealColor : Colors.grey,
+                fontSize: 12,
+              ),
+            ),
+            if (isUnread) ...[
+              const SizedBox(height: 4),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: tealColor,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  '$unreadCount',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }

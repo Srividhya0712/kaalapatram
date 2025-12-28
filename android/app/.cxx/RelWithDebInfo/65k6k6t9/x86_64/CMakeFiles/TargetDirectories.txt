@@ -1,0 +1,2 @@
+D:/kaalapatram/android/app/.cxx/RelWithDebInfo/65k6k6t9/x86_64/CMakeFiles/edit_cache.dir
+D:/kaalapatram/android/app/.cxx/RelWithDebInfo/65k6k6t9/x86_64/CMakeFiles/rebuild_cache.dir

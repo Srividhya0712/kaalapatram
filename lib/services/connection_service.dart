@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:rxdart/rxdart.dart';
 import '../models/connection.dart';
 import '../models/user_profile.dart';
 
@@ -58,24 +59,33 @@ class ConnectionService {
     await _firestore.collection('connections').doc(connectionId).delete();
   }
 
-  // Get all connections for a user (sent and received)
+  // Get all connections for a user (sent and received) - FULLY REAL-TIME
   Stream<List<Connection>> getUserConnections(String userId) {
-    return _firestore
+    // Stream for connections where user is the requester
+    final sentStream = _firestore
         .collection('connections')
         .where('requesterId', isEqualTo: userId)
-        .snapshots()
-        .asyncMap((sentSnapshot) async {
-      final receivedSnapshot = await _firestore
-          .collection('connections')
-          .where('receiverId', isEqualTo: userId)
-          .get();
+        .snapshots();
+    
+    // Stream for connections where user is the receiver
+    final receivedStream = _firestore
+        .collection('connections')
+        .where('receiverId', isEqualTo: userId)
+        .snapshots();
 
-      final allDocs = [...sentSnapshot.docs, ...receivedSnapshot.docs];
-      return allDocs.map((doc) {
-        final data = doc.data();
-        return Connection.fromJson(data);
-      }).toList();
-    });
+    // Combine both streams for real-time updates from either direction
+    return Rx.combineLatest2(
+      sentStream,
+      receivedStream,
+      (QuerySnapshot<Map<String, dynamic>> sent, 
+       QuerySnapshot<Map<String, dynamic>> received) {
+        final allDocs = [...sent.docs, ...received.docs];
+        return allDocs.map((doc) {
+          final data = doc.data();
+          return Connection.fromJson(data);
+        }).toList();
+      },
+    );
   }
 
   // Get pending connection requests received by user
