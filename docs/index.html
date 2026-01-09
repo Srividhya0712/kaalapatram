@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Privacy Policy for Kaalapatram - Tamil Calendar & Event Management App">
+    <title>Privacy Policy - Kaalapatram</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --bg: #0f0f1a;
+            --bg-card: #1a1a2e;
+            --bg-card-hover: #252540;
+            --text: #e2e8f0;
+            --text-muted: #94a3b8;
+            --border: #334155;
+            --accent: #22d3ee;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.7;
+            min-height: 100vh;
+        }
+
+        .hero {
+            background: linear-gradient(135deg, var(--primary) 0%, #8b5cf6 50%, #ec4899 100%);
+            padding: 60px 20px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+            opacity: 0.5;
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        .hero .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.95;
+            margin-bottom: 15px;
+        }
+
+        .hero .last-updated {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            background: rgba(255,255,255,0.15);
+            display: inline-block;
+            padding: 6px 16px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .section {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 24px;
+            border: 1px solid var(--border);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .section:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(99, 102, 241, 0.1);
+        }
+
+        h2 {
+            color: var(--accent);
+            font-size: 1.4rem;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        h2::before {
+            content: '';
+            width: 4px;
+            height: 24px;
+            background: linear-gradient(180deg, var(--primary) 0%, var(--accent) 100%);
+            border-radius: 2px;
+        }
+
+        h3 {
+            color: var(--text);
+            font-size: 1.1rem;
+            margin: 20px 0 12px;
+            font-weight: 600;
+        }
+
+        p {
+            color: var(--text-muted);
+            margin-bottom: 15px;
+        }
+
+        ul, ol {
+            color: var(--text-muted);
+            margin-left: 20px;
+            margin-bottom: 15px;
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+
+        strong {
+            color: var(--text);
+        }
+
+        a {
+            color: var(--accent);
+            text-decoration: none;
+            transition: opacity 0.2s;
+        }
+
+        a:hover {
+            opacity: 0.8;
+            text-decoration: underline;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            font-size: 0.9rem;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .data-table th {
+            background: var(--bg);
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .data-table td {
+            color: var(--text-muted);
+        }
+
+        .data-table tr:hover td {
+            background: var(--bg-card-hover);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .badge-yes {
+            background: rgba(34, 197, 94, 0.2);
+            color: #22c55e;
+        }
+
+        .badge-no {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        .badge-limited {
+            background: rgba(251, 191, 36, 0.2);
+            color: #fbbf24;
+        }
+
+        .contact-box {
+            background: linear-gradient(135deg, var(--primary) 0%, #8b5cf6 100%);
+            border-radius: 12px;
+            padding: 24px;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .contact-box p {
+            color: rgba(255,255,255,0.9);
+            margin-bottom: 10px;
+        }
+
+        .contact-box a {
+            color: white;
+            font-weight: 600;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 30px 20px;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .footer strong {
+            color: var(--accent);
+        }
+
+        .note-box {
+            background: rgba(99, 102, 241, 0.1);
+            border-left: 4px solid var(--primary);
+            padding: 15px 20px;
+            border-radius: 0 8px 8px 0;
+            margin: 15px 0;
+        }
+
+        .note-box p {
+            margin: 0;
+            color: var(--text);
+        }
+
+        @media (max-width: 600px) {
+            .hero h1 {
+                font-size: 1.8rem;
+            }
+            
+            .section {
+                padding: 20px;
+            }
+            
+            .data-table {
+                font-size: 0.8rem;
+            }
+            
+            .data-table th,
+            .data-table td {
+                padding: 8px 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="hero">
+        <div class="hero-content">
+            <h1>📅 Kaalapatram</h1>
+            <p class="subtitle">Privacy Policy</p>
+            <span class="last-updated">Last Updated: January 9, 2026</span>
+        </div>
+    </header>
+
+    <main class="container">
+        <section class="section">
+            <h2>Introduction</h2>
+            <p>Welcome to Kaalapatram! This Privacy Policy explains how we collect, use, store, and protect your personal information when you use our mobile application ("App"). By using Kaalapatram, you agree to the collection and use of information in accordance with this policy.</p>
+            <p>Kaalapatram is a Tamil calendar and event management application designed to help users organize their personal and professional schedules.</p>
+        </section>
+
+        <section class="section">
+            <h2>Information We Collect</h2>
+            
+            <h3>1. Personal Information</h3>
+            <p>When you create an account and use Kaalapatram, we may collect:</p>
+            <ul>
+                <li><strong>Account Information:</strong> Email address, username, and password (encrypted)</li>
+                <li><strong>Profile Information:</strong> Profession, bio, and profile photo URL (optional)</li>
+                <li><strong>Authentication Data:</strong> Login credentials and authentication tokens</li>
+            </ul>
+
+            <h3>2. Event and Calendar Data</h3>
+            <p>When you create and manage events, we collect:</p>
+            <ul>
+                <li><strong>Event Details:</strong> Event dates, Tamil calendar dates, event descriptions</li>
+                <li><strong>Employer Information:</strong> Employer name and contact details (when applicable)</li>
+                <li><strong>Payment Information:</strong> Payment amounts and currency (for event tracking purposes only - we do not process payments)</li>
+            </ul>
+
+            <h3>3. Communication Data</h3>
+            <ul>
+                <li><strong>Messages:</strong> In-app messages exchanged between users</li>
+                <li><strong>Notifications:</strong> Notification preferences and history</li>
+            </ul>
+
+            <h3>4. Technical Information</h3>
+            <ul>
+                <li><strong>Device Information:</strong> Device type, operating system version</li>
+                <li><strong>Usage Data:</strong> App usage patterns, feature interactions</li>
+                <li><strong>Connection Data:</strong> User connections and relationships within the app</li>
+            </ul>
+
+            <h3>5. Third-Party Authentication</h3>
+            <p>If you choose to sign in with Google, we receive:</p>
+            <ul>
+                <li>Your Google account email address</li>
+                <li>Your Google account display name</li>
+                <li>Your Google profile picture URL (if available)</li>
+            </ul>
+        </section>
+
+        <section class="section">
+            <h2>How We Use Your Information</h2>
+            <p>We use the collected information to:</p>
+            <ol>
+                <li><strong>Provide Services:</strong> Create and manage your account, events, and calendar</li>
+                <li><strong>Enable Communication:</strong> Facilitate messaging between users</li>
+                <li><strong>Improve the App:</strong> Analyze usage patterns to enhance features and user experience</li>
+                <li><strong>Send Notifications:</strong> Alert you about upcoming events, task assignments, and important updates</li>
+                <li><strong>Customer Support:</strong> Respond to your inquiries and provide technical assistance</li>
+                <li><strong>Security:</strong> Protect against fraud, unauthorized access, and ensure account security</li>
+            </ol>
+        </section>
+
+        <section class="section">
+            <h2>Data Storage and Security</h2>
+            
+            <h3>Storage</h3>
+            <p>Your data is stored securely using:</p>
+            <ul>
+                <li><strong>Firebase Cloud Firestore:</strong> For cloud-based data storage</li>
+                <li><strong>Firebase Authentication:</strong> For secure user authentication</li>
+                <li><strong>Local Storage:</strong> Cached profile data on your device using SharedPreferences</li>
+            </ul>
+
+            <h3>Security Measures</h3>
+            <p>We implement industry-standard security measures including:</p>
+            <ul>
+                <li>Encrypted data transmission (HTTPS/TLS)</li>
+                <li>Secure authentication tokens</li>
+                <li>Firebase Security Rules to protect database access</li>
+                <li>Password encryption</li>
+            </ul>
+        </section>
+
+        <section class="section">
+            <h2>Data Sharing and Disclosure</h2>
+            <div class="note-box">
+                <p><strong>We do NOT sell, trade, or rent your personal information to third parties.</strong></p>
+            </div>
+            <p>We may share information only in the following circumstances:</p>
+            <ol>
+                <li><strong>With Your Consent:</strong> When you explicitly agree to share information</li>
+                <li><strong>Service Providers:</strong> With Google/Firebase for essential app functionality</li>
+                <li><strong>Legal Requirements:</strong> When required by law or to protect our rights</li>
+                <li><strong>Admin Access:</strong> App administrators may view event data for task management purposes</li>
+            </ol>
+        </section>
+
+        <section class="section">
+            <h2>Third-Party Services</h2>
+            <p>Kaalapatram uses the following third-party services:</p>
+            <ul>
+                <li><strong>Google Firebase:</strong> Authentication, database storage, and cloud functions</li>
+                <li><strong>Google Sign-In:</strong> Optional social login functionality</li>
+            </ul>
+            <p>These services have their own privacy policies:</p>
+            <ul>
+                <li><a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google Privacy Policy</a></li>
+                <li><a href="https://firebase.google.com/support/privacy" target="_blank" rel="noopener">Firebase Privacy Policy</a></li>
+            </ul>
+        </section>
+
+        <section class="section">
+            <h2>Your Rights and Choices</h2>
+            <p>You have the right to:</p>
+            <ol>
+                <li><strong>Access:</strong> View your personal information stored in the app</li>
+                <li><strong>Update:</strong> Modify your profile information at any time</li>
+                <li><strong>Delete:</strong> Delete your account and associated data</li>
+                <li><strong>Opt-out:</strong> Disable notifications through device settings</li>
+            </ol>
+
+            <h3>Account Deletion</h3>
+            <p>You can delete your account at any time through the app settings. Upon deletion:</p>
+            <ul>
+                <li>Your profile data will be removed from our servers</li>
+                <li>Your events and messages will be deleted</li>
+                <li>Cached local data will be cleared</li>
+            </ul>
+        </section>
+
+        <section class="section">
+            <h2>Data Retention</h2>
+            <p>We retain your personal data for as long as:</p>
+            <ul>
+                <li>Your account remains active</li>
+                <li>Necessary to provide our services</li>
+                <li>Required by applicable laws</li>
+            </ul>
+            <p>After account deletion, we may retain anonymized data for analytical purposes.</p>
+        </section>
+
+        <section class="section">
+            <h2>Age Requirement</h2>
+            <div class="note-box">
+                <p><strong>Kaalapatram is intended for users aged 18 and older.</strong></p>
+            </div>
+            <p>We do not knowingly collect personal information from individuals under 18 years of age. If we learn that we have collected personal information from a user under 18, we will take steps to delete such information promptly.</p>
+            <p>If you believe we have inadvertently collected information from a minor, please contact us immediately.</p>
+        </section>
+
+        <section class="section">
+            <h2>International Data Transfers</h2>
+            <p>Your information may be transferred to and processed in countries other than your country of residence. By using Kaalapatram, you consent to such transfers. We ensure appropriate safeguards are in place to protect your data.</p>
+        </section>
+
+        <section class="section">
+            <h2>Changes to This Privacy Policy</h2>
+            <p>We may update this Privacy Policy from time to time. We will notify you of any significant changes by:</p>
+            <ul>
+                <li>Posting the updated policy within the app</li>
+                <li>Updating the "Last Updated" date at the top of this policy</li>
+            </ul>
+            <p>We encourage you to review this Privacy Policy periodically.</p>
+        </section>
+
+        <section class="section">
+            <h2>Data Summary</h2>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Data Type</th>
+                        <th>Collected</th>
+                        <th>Purpose</th>
+                        <th>Shared</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Email & Username</td>
+                        <td><span class="badge badge-yes">Yes</span></td>
+                        <td>Account management</td>
+                        <td><span class="badge badge-no">No</span></td>
+                    </tr>
+                    <tr>
+                        <td>Profile Info</td>
+                        <td><span class="badge badge-yes">Optional</span></td>
+                        <td>User identification</td>
+                        <td><span class="badge badge-limited">Limited</span></td>
+                    </tr>
+                    <tr>
+                        <td>Events & Calendar</td>
+                        <td><span class="badge badge-yes">Yes</span></td>
+                        <td>Core functionality</td>
+                        <td><span class="badge badge-limited">Assigned users</span></td>
+                    </tr>
+                    <tr>
+                        <td>Messages</td>
+                        <td><span class="badge badge-yes">Yes</span></td>
+                        <td>Communication</td>
+                        <td><span class="badge badge-limited">Participants</span></td>
+                    </tr>
+                    <tr>
+                        <td>Device Info</td>
+                        <td><span class="badge badge-yes">Basic</span></td>
+                        <td>App functionality</td>
+                        <td><span class="badge badge-limited">Firebase</span></td>
+                    </tr>
+                    <tr>
+                        <td>Payment Details*</td>
+                        <td><span class="badge badge-yes">Yes</span></td>
+                        <td>Event tracking only</td>
+                        <td><span class="badge badge-no">No</span></td>
+                    </tr>
+                </tbody>
+            </table>
+            <p style="margin-top: 15px; font-size: 0.85rem;">*We store payment amounts for event records only. We do NOT process actual payments.</p>
+        </section>
+
+        <section class="section">
+            <h2>Contact Us</h2>
+            <p>If you have any questions, concerns, or requests regarding this Privacy Policy or our data practices, please contact us:</p>
+            <div class="contact-box">
+                <p><strong>Email:</strong> <a href="mailto:support@kaalapatram.com">support@kaalapatram.com</a></p>
+                <p><strong>Developer:</strong> Kaalapatram Team</p>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <p><strong>By using Kaalapatram, you acknowledge that you have read and understood this Privacy Policy.</strong></p>
+        <p style="margin-top: 10px;">© 2026 Kaalapatram. All rights reserved.</p>
+    </footer>
+</body>
+</html>
